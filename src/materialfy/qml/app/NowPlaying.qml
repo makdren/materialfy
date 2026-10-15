@@ -277,7 +277,8 @@ Item {
                     id: bigCover
                     // Всё остальное в колонке занимает ~360 px (в узком окне ~310) — обложка берёт оставшееся
                     // плашка пульта (если видна) тоже забирает высоту
-                    readonly property real s: root.layoutCompact ? Math.max(96, Math.min(left.colWidth, body.height - 316 - npBanner.implicitHeight, 360))
+                    // телефон: запас по бокам — «печенька» обложки, её пульс и вращение шире самой картинки
+                    readonly property real s: root.layoutCompact ? Math.max(96, Math.min(left.colWidth * (Theme.mobile ? 0.84 : 1), body.height - 316 - npBanner.implicitHeight, 360))
                                                            : Math.max(160, Math.min(left.colWidth, body.height - 360 - npBanner.implicitHeight, 440))
                     Layout.alignment: Qt.AlignHCenter
                     Layout.preferredWidth: s

@@ -65,7 +65,8 @@ Page {
         Layout.alignment: Qt.AlignHCenter
         Layout.topMargin: 8
         implicitHeight: 56
-        placeholder: I18n.t("Track, album, artist, playlist or podcast")
+        // телефон: коротко — длинная подсказка не помещается в поле
+        placeholder: Theme.mobile ? I18n.t("Search") : I18n.t("Track, album, artist, playlist or podcast")
         onTextChanged: debounce.restart()
         // Enter — искать сразу, не дожидаясь паузы ввода; Esc — очистить поле
         onAccepted: {

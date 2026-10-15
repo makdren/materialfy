@@ -70,7 +70,7 @@ jobs:
     needs: meta
     # Own runner for pushes and tags; pull requests (possibly from forks) never reach it.
     # Set the repository variable USE_SELF_HOSTED=false to build in the cloud while that machine is off.
-    runs-on: ${{ (github.event_name != 'pull_request' && vars.USE_SELF_HOSTED != 'false') && fromJSON('["self-hosted","Windows","materialfy"]') || 'windows-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' && vars.USE_SELF_HOSTED != 'false' && (github.repository == 'fatyzzz/materialfy' || vars.USE_SELF_HOSTED == 'true')) && fromJSON('["self-hosted","Windows","materialfy"]') || 'windows-latest' }}
     timeout-minutes: 120
     env:
       VERSION: ${{ needs.meta.outputs.version }}
@@ -249,6 +249,90 @@ jobs:
           path: |
             target/dist/*.AppImage
             target/dist/*.tar.gz
+          if-no-files-found: error
+
+  android:
+    name: Android arm64
+    needs: meta
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+      NDK_VERSION: "28.2.13676358"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends p7zip-full lld
+
+      # Qt for Android needs a desktop Qt of the same version for its tools (moc, rcc, androiddeployqt)
+      - name: Cache Qt
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/gcc_64
+            ${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/android_arm64_v8a
+          key: qt-${{ env.QT_VERSION }}-android-${{ hashFiles('.github/scripts/install_qt.py') }}
+
+      - name: Install Qt ${{ env.QT_VERSION }} (host and Android)
+        run: |
+          read -ra addons <<< "$QT_ADDONS"
+          python3 .github/scripts/install_qt.py --host linux --version "$QT_VERSION" \
+            --addons "${addons[@]}" --out "$RUNNER_TEMP/Qt/$QT_VERSION/gcc_64"
+          python3 .github/scripts/install_qt.py --host android --version "$QT_VERSION" \
+            --addons "${addons[@]}" --out "$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "ndk;$NDK_VERSION"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: android-arm64-qt-${{ env.QT_VERSION }}
+          save-if: ${{ github.event_name != 'pull_request' }}
+
+      # Release key from the ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASS secrets: in-app updates install only
+      # over an APK signed with the same key. Without them the APK is signed with a throwaway debug key.
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            {
+              echo "ANDROID_KEYSTORE=$RUNNER_TEMP/release.jks"
+              echo "ANDROID_KEY_ALIAS=${{ vars.ANDROID_KEY_ALIAS || 'materialfy' }}"
+              echo "ANDROID_KEYSTORE_PASS=$KEYSTORE_PASS"
+            } >> "$GITHUB_ENV"
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 is not set: the APK is debug-signed and can't update an installed release"
+          fi
+
+      - name: Build APK
+        run: |
+          export QT_ANDROID="$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a" QT_HOST="$RUNNER_TEMP/Qt/$QT_VERSION/gcc_64"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME" ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/$NDK_VERSION"
+          bash android/build_apk.sh --release
+          mkdir -p target/dist
+          # name without "-debugsigned": the updater picks the asset by its "-arm64-v8a.apk" suffix
+          cp "$(ls target/android/Materialfy-*-arm64-v8a*.apk | head -1)" "target/dist/Materialfy-$VERSION-arm64-v8a.apk"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: materialfy-android-arm64
+          path: target/dist/*.apk
           if-no-files-found: error
 
   macos:

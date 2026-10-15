@@ -50,6 +50,14 @@ public class PlaybackService extends Service
         boolean canPrevious;
         boolean canNext;
         boolean local = true;
+        // когда пришло (позиция между обновлениями — по времени)
+        long at = SystemClock.elapsedRealtime();
+
+        long positionNow()
+        {
+            long pos = positionMs + (playing ? SystemClock.elapsedRealtime() - at : 0);
+            return durationMs > 0 ? Math.min(pos, durationMs) : pos;
+        }
     }
 
     private static final String CHANNEL = "playback";
@@ -74,6 +82,17 @@ public class PlaybackService extends Service
     private WifiManager.WifiLock wifiLock;
 
     private final ExecutorService loader = Executors.newSingleThreadExecutor();
+    private final IslandNotification island = new IslandNotification();
+    // прогресс в острове системы — раз в 10 с, пока играет
+    private final Runnable islandTick = new Runnable() {
+        @Override
+        public void run()
+        {
+            updateIsland();
+            if (latest.playing && latest.hasTrack)
+                MAIN.postDelayed(this, 10_000L);
+        }
+    };
     private String coverUrl = "";
     private Bitmap cover;
 
@@ -114,6 +133,15 @@ public class PlaybackService extends Service
     };
 
     // ---- из MobileBridge (любой поток) ----
+
+    // Настройки → «Плеер в острове системы»: применить сразу
+    static void refreshIsland()
+    {
+        MAIN.post(() -> {
+            if (running != null)
+                running.updateIsland();
+        });
+    }
 
     static void publish(Context context, State state)
     {
@@ -219,6 +247,9 @@ public class PlaybackService extends Service
     {
         if (running == this)
             running = null;
+        MAIN.removeCallbacks(islandTick);
+        if (notifications != null)
+            island.clear(notifications);
         abandonFocus();
         setNoisy(false);
         releaseLocks();
@@ -279,6 +310,11 @@ public class PlaybackService extends Service
             releaseLocks();
         }
 
+        MAIN.removeCallbacks(islandTick);
+        updateIsland();
+        if (s.playing)
+            MAIN.postDelayed(islandTick, 10_000L);
+
         Notification notification = buildNotification();
         if (s.playing) {
             goForeground(notification);
@@ -287,6 +323,22 @@ public class PlaybackService extends Service
             stopForegroundCompat(false);
             notifications.notify(NOTIFICATION_ID, notification);
         }
+    }
+
+    private void updateIsland()
+    {
+        State s = latest;
+        State now = new State();
+        now.title = s.title;
+        now.artist = s.artist;
+        now.album = s.album;
+        now.durationMs = s.durationMs;
+        now.positionMs = s.positionNow();
+        now.playing = s.playing;
+        now.hasTrack = s.hasTrack;
+        PendingIntent open = session != null ? session.getController().getSessionActivity() : null;
+        island.update(this, now, cover, open, action(android.R.drawable.ic_media_pause, R.string.pause, "pause"),
+                      s.canNext ? action(android.R.drawable.ic_media_next, R.string.next, "next") : null);
     }
 
     private Notification buildNotification()

@@ -376,7 +376,7 @@ Item {
                     Button {
                         visible: root.st === "readyToInstall" || root.st === "installing"
                         enabled: root.st === "readyToInstall"
-                        text: root.mac ? I18n.t("Open installer") : I18n.t("Restart to update")
+                        text: root.mac || Updater.installKind === "apk" ? I18n.t("Open installer") : I18n.t("Restart to update")
                         icon: root.mac ? "open_in_new" : "restart_alt"
                         onClicked: Updater.install()
                     }

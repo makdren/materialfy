@@ -50,6 +50,8 @@ Item {
                     visible: page.subtitle !== ""
                     Layout.fillWidth: true
                     text: page.subtitle
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideNone
                     type: "bodyLarge"
                     color: Theme.fgSurfaceVariant
                 }

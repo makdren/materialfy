@@ -401,6 +401,20 @@ export ANDROID_SDK_ROOT=~/Android/Sdk ANDROID_NDK_ROOT=~/Android/Sdk/ndk/28.2.13
 android/build_apk.sh --release   # target/android/Materialfy-<версия>-arm64-v8a-debugsigned.apk
 ```
 
+Плеер умеет жить и в «острове» системы: на Android 16 — как Live Update (чип в статус-баре, Samsung Now Bar,
+HyperOS Super Island, ColorOS Fluid Cloud), на телефонах vivo — в атомном острове OriginOS (Настройки →
+Воспроизведение → «Плеер в острове системы»). Музыкальную карточку острова vivo открывает только разрешённым
+прошивкой приложениям, поэтому на части прошивок останется обычное уведомление плеера. Статус «Слушает
+Spotify» в Discord ставит сама связка Spotify ↔ Discord: Materialfy играет как устройство Spotify Connect, так что
+на Android это работает так же.
+
+Обновления приходят из GitHub Releases этого форка (`makdren/materialfy`): Настройки → Обновления скачивает
+`-arm64-v8a.apk` свежего релиза, сверяет его с `SHA256SUMS.txt` и отдаёт системному установщику. Android ставит
+обновление только поверх APK, подписанного тем же ключом, поэтому сборка в CI (`build.yml`, задача `android`)
+подписывает его ключом из секретов репозитория `ANDROID_KEYSTORE_BASE64` и `ANDROID_KEYSTORE_PASS` (псевдоним
+`materialfy` или переменная `ANDROID_KEY_ALIAS`). Тег `v*` публикует APK в том же релизе, что и сборки для
+компьютера.
+
 Без ключа APK подписан отладочным ключом SDK: он ставится как есть, но сборку с другим ключом поверх него не
 поставить. Для своего ключа задайте `ANDROID_KEYSTORE`, `ANDROID_KEY_ALIAS` и `ANDROID_KEYSTORE_PASS`. Часть для
 Android — в [`android/`](android) (манифест, активность, сервисы воспроизведения и входа) и

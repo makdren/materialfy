@@ -113,6 +113,43 @@ MobileShell::android() const
   return is_android();
 }
 
+bool
+MobileShell::islandSupported() const
+{
+#if defined(Q_OS_ANDROID)
+  return QJniObject::callStaticMethod<jboolean>(BRIDGE, "islandSupported", "()Z");
+#else
+  return false;
+#endif
+}
+
+bool
+MobileShell::islandEnabled() const
+{
+#if defined(Q_OS_ANDROID)
+  return QJniObject::callStaticMethod<jboolean>(
+    BRIDGE, "islandEnabled", "(Landroid/content/Context;)Z", context_object().object());
+#else
+  return false;
+#endif
+}
+
+void
+MobileShell::setIslandEnabled(bool on)
+{
+#if defined(Q_OS_ANDROID)
+  if (on == islandEnabled())
+    return;
+  QJniObject::callStaticMethod<void>(
+    BRIDGE, "setIslandEnabled", "(Landroid/content/Context;Z)V", context_object().object(), static_cast<jboolean>(on));
+  QJniEnvironment env;
+  env.checkAndClearExceptions();
+  emit islandEnabledChanged();
+#else
+  Q_UNUSED(on)
+#endif
+}
+
 void
 MobileShell::updateMedia(const QString& title,
                          const QString& artist,
@@ -303,6 +340,26 @@ android_context()
   return reinterpret_cast<std::size_t>(global);
 #else
   return 0;
+#endif
+}
+
+QString
+android_install_apk(const QString& path)
+{
+#if defined(Q_OS_ANDROID)
+  // поток Rust: QJniEnvironment сам прикрепляет его к JVM
+  QJniObject result = QJniObject::callStaticObjectMethod("org/materialfy/ApkInstaller",
+                                                         "install",
+                                                         "(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/String;",
+                                                         context_object().object(),
+                                                         jstr(path).object<jstring>());
+  QJniEnvironment env;
+  if (env.checkAndClearExceptions())
+    return QStringLiteral("installer exception");
+  return result.isValid() ? result.toString() : QStringLiteral("installer unavailable");
+#else
+  Q_UNUSED(path)
+  return QStringLiteral("not android");
 #endif
 }
 

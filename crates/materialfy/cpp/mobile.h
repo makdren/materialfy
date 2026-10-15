@@ -16,12 +16,18 @@ class MobileShell : public QObject
   Q_OBJECT
   // true — сборка под Android (раскладка телефона всегда, без окон и трея)
   Q_PROPERTY(bool android READ android CONSTANT)
+  // Плеер в «острове» системы (Live Updates Android 16, остров vivo): есть ли где показать и включён ли
+  Q_PROPERTY(bool islandSupported READ islandSupported CONSTANT)
+  Q_PROPERTY(bool islandEnabled READ islandEnabled WRITE setIslandEnabled NOTIFY islandEnabledChanged)
 
 public:
   explicit MobileShell(QObject* parent = nullptr);
   static MobileShell* instance();
 
   bool android() const;
+  bool islandSupported() const;
+  bool islandEnabled() const;
+  void setIslandEnabled(bool on);
 
   // Состояние плеера → MediaSession и уведомление (Android). hasTrack=false — убрать уведомление;
   // local=false — играет другое устройство (Connect): без аудиофокуса и блокировок сна.
@@ -46,6 +52,7 @@ public:
   Q_INVOKABLE void haptic();
 
 signals:
+  void islandEnabledChanged();
   // Команды из уведомления, гарнитуры и экрана блокировки: "play", "pause", "toggle", "next", "previous",
   // "seek" (arg — мс), "stop"
   void mediaCommand(const QString& command, qint64 arg);
@@ -72,6 +79,9 @@ QString android_prepare_assets(const QString& version);
 // Android: JavaVM* и глобальная ссылка на Context — для ndk-context (cpal/AAudio). 0 — не Android.
 std::size_t android_java_vm();
 std::size_t android_context();
+// Android: передать APK системному установщику. "" — окно установки показано, "permission" — нужно
+// разрешение «Установка неизвестных приложений» (его настройки уже открыты), иначе — текст ошибки
+QString android_install_apk(const QString& path);
 // Открыть ссылку во внешнем браузере из любого потока (через GUI-поток: QDesktopServices)
 void open_url_external(const QString& url);
 

@@ -91,6 +91,17 @@ public final class MobileBridge
         }
     }
 
+    // Плеер в острове системы (IslandNotification)
+    public static boolean islandSupported() { return IslandNotification.supported(); }
+
+    public static boolean islandEnabled(Context context) { return IslandNotification.enabled(context); }
+
+    public static void setIslandEnabled(Context context, boolean on)
+    {
+        IslandNotification.setEnabled(context, on);
+        PlaybackService.refreshIsland();
+    }
+
     // Вход в Spotify ждёт ответа браузера (см. SignInService)
     public static void setBrowserWait(Context context, boolean waiting)
     {

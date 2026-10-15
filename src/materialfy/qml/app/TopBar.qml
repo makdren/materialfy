@@ -89,6 +89,9 @@ Item {
 
         Label {
             Layout.fillWidth: true
+            // уступает место кнопкам страницы (поиск по медиатеке на телефоне)
+            Layout.preferredWidth: 1
+            Layout.minimumWidth: 0
             text: root.page ? root.page.title : ""
             type: "titleLarge"
             weight: 500

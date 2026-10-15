@@ -195,29 +195,31 @@ Window {
                 router: router
                 window: win
                 z: 2
-                trailing: Component {
-                    Row {
-                        spacing: 4
-                        // главная: новинки и аккаунт — справа в шапке (в нижней навигации им места нет)
-                        visible: router.currentName === "home"
-                        IconButton {
-                            icon: "new_releases"
-                            onClicked: router.push("releases")
+                // главная: новинки и аккаунт — справа в шапке (в нижней навигации им места нет); на других
+                // страницах слота нет совсем, иначе он занимал бы место кнопок страницы
+                trailing: router.currentName === "home" ? homeActions : null
+            }
+            Component {
+                id: homeActions
+                Row {
+                    spacing: 4
+                    IconButton {
+                        icon: "new_releases"
+                        onClicked: router.push("releases")
+                    }
+                    Item {
+                        width: 40
+                        height: 40
+                        Avatar {
+                            anchors.centerIn: parent
+                            size: 32
+                            name: Auth.account ? (Auth.account.displayName ?? "") : ""
+                            source: Auth.account ? (Auth.account.avatar ?? "") : ""
                         }
-                        Item {
-                            width: 40
-                            height: 40
-                            Avatar {
-                                anchors.centerIn: parent
-                                size: 32
-                                name: Auth.account ? (Auth.account.displayName ?? "") : ""
-                                source: Auth.account ? (Auth.account.avatar ?? "") : ""
-                            }
-                            StateLayer {
-                                anchors.fill: parent
-                                radius: width / 2
-                                onClicked: router.push("account")
-                            }
+                        StateLayer {
+                            anchors.fill: parent
+                            radius: width / 2
+                            onClicked: router.push("account")
                         }
                     }
                 }
@@ -468,6 +470,21 @@ Window {
     }
     ApiLimitDialog {
         z: 2120
+    }
+    // Обновление (Настройки → Обновления; новая версия — снекбаром с «Подробнее»)
+    UpdateSheet {
+        id: updateSheet
+        z: 2150
+    }
+    Connections {
+        target: Updater
+        property string _told: ""
+        function onStateChanged() {
+            if (Updater.state === "available" && !Updater.skipped && _told !== Updater.version) {
+                _told = Updater.version
+                snackbar.show(I18n.t("Version {0} is available", Updater.version), I18n.t("Details"), () => Updater.showSheet(), 10000)
+            }
+        }
     }
     Snackbar {
         id: snackbar

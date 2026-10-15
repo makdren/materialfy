@@ -48,4 +48,5 @@ jobs:
             dist/*.AppImage
             dist/*.tar.gz
             dist/*.dmg
+            dist/*.apk
             dist/SHA256SUMS.txt

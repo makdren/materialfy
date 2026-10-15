@@ -68,6 +68,9 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                     text: tab.modelData.text
                     type: "labelMedium"
+                    // длинная подпись («Configurações» на 360 px) — мельче, а не с многоточием
+                    fontSizeMode: Text.HorizontalFit
+                    minimumPixelSize: 9
                     weight: tab.active ? 700 : 500
                     color: tab.active ? Theme.fgSurface : Theme.fgSurfaceVariant
                 }

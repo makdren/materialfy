@@ -16,7 +16,11 @@
     <!-- SignInService до Android 14: процесс не замораживается, пока вход идёт в браузере -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 16: плеер как Live Update (чип статус-бара, Now Bar, Super Island и т. п.) -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- обновление из приложения: APK из релиза GitHub ставит системный установщик (с подтверждением) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <supports-screens
         android:anyDensity="true"
@@ -67,5 +71,9 @@
             android:name="org.materialfy.SignInService"
             android:exported="false"
             android:foregroundServiceType="shortService|dataSync" />
+
+        <receiver
+            android:name="org.materialfy.ApkInstaller$InstallResultReceiver"
+            android:exported="false" />
     </application>
 </manifest>

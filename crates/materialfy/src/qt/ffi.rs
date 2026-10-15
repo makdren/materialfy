@@ -65,6 +65,7 @@ pub mod ffi {
         fn android_java_vm() -> usize;
         fn android_context() -> usize;
         fn open_url_external(url: &QString);
+        fn android_install_apk(path: &QString) -> QString;
 
         include!("register.h");
         fn register_qml_types();

@@ -503,7 +503,7 @@ fn prepare_android() {
     }
     // на других ОС функции есть (C++ собирается везде), но не нужны
     #[cfg(not(target_os = "android"))]
-    let _ = (ffi::android_java_vm, ffi::android_context);
+    let _ = (ffi::android_java_vm, ffi::android_context, ffi::android_install_apk);
     #[cfg(target_os = "android")]
     {
         let (vm, context) = (ffi::android_java_vm(), ffi::android_context());
@@ -515,6 +515,13 @@ fn prepare_android() {
     sf_services::set_browser_opener(|url| {
         ffi::open_url_external(&qstr(url));
         Ok(())
+    });
+    sf_services::update::install::set_apk_installer(|file| {
+        match ffi::android_install_apk(&qpath(file)).to_string().as_str() {
+            "" => Ok(()),
+            "permission" => Err(mf_i18n::t("Allow Materialfy to install apps in the settings that opened, then press Install again")),
+            other => Err(other.to_owned()),
+        }
     });
 }
 

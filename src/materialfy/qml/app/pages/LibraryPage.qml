@@ -259,15 +259,17 @@ Item {
         id: toolbarComponent
         Row {
             spacing: 8
+            // телефон: поле — на всё свободное место шапки, сортировка и вид на это время прячутся
+            readonly property real fieldWidth: Theme.mobile ? Math.max(140, page.width - 140) : 240
             Item {
-                width: page.searchOpen ? 240 : 0
+                width: page.searchOpen ? parent.fieldWidth : 0
                 height: 40
                 clip: true
                 anchors.verticalCenter: parent.verticalCenter
                 Behavior on width { enabled: Theme.reducedMotion !== true; NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasized } }
                 SearchField {
                     id: libSearch
-                    width: 240
+                    width: parent.parent.fieldWidth
                     height: 40
                     placeholder: I18n.t("Search in library")
                     text: page.query
@@ -291,7 +293,7 @@ Item {
             }
             Button {
                 id: sortButton
-                visible: !page.inFolder
+                visible: !page.inFolder && !(Theme.mobile && page.searchOpen)
                 anchors.verticalCenter: parent.verticalCenter
                 style: "text"
                 icon: "sort"
@@ -304,6 +306,7 @@ Item {
                 }
             }
             ButtonGroup {
+                visible: !(Theme.mobile && page.searchOpen)
                 anchors.verticalCenter: parent.verticalCenter
                 model: [{ icon: "grid_view" }, { icon: "view_list" }]
                 autoSelect: false

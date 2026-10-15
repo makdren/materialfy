@@ -404,6 +404,20 @@ export ANDROID_SDK_ROOT=~/Android/Sdk ANDROID_NDK_ROOT=~/Android/Sdk/ndk/28.2.13
 android/build_apk.sh --release   # target/android/Materialfy-<version>-arm64-v8a-debugsigned.apk
 ```
 
+The player can also sit in the system "island": on Android 16 as a Live Update (status bar chip, Samsung
+Now Bar, HyperOS Super Island, ColorOS Fluid Cloud) and on vivo phones in the OriginOS Origin Island
+(Settings → Playback → "Player in the system island"). vivo shows the island's music card only for apps the
+firmware allows, so on some firmware only the regular player notification appears. Discord shows "Listening to
+Spotify" through the Spotify connection in Discord itself: Materialfy plays as a Spotify Connect device, so it
+works the same on Android.
+
+Updates come from this fork's GitHub Releases (`makdren/materialfy`): Settings → Updates downloads the
+`-arm64-v8a.apk` of the newest release, checks it against `SHA256SUMS.txt` and hands it to the system installer.
+Android installs an update only over an APK signed with the same key, so the release build in CI
+(`build.yml`, job `android`) signs with the `ANDROID_KEYSTORE_BASE64` and `ANDROID_KEYSTORE_PASS` repository
+secrets (key alias `materialfy`, or the `ANDROID_KEY_ALIAS` variable). A `v*` tag publishes the APK in the same
+release as the desktop builds.
+
 Without a keystore the APK is signed with the SDK debug key: it installs as is, but a build signed with a
 different key cannot be installed over it. For a release key set `ANDROID_KEYSTORE`, `ANDROID_KEY_ALIAS` and
 `ANDROID_KEYSTORE_PASS`. The Android part lives in [`android/`](android) (manifest, activity, playback and sign-in

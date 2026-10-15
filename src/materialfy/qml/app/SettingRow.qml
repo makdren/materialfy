@@ -31,7 +31,8 @@ GridLayout {
     ColumnLayout {
         Layout.fillWidth: true
         spacing: 2
-        Label { Layout.fillWidth: true; text: root.title; type: "bodyLarge" }
+        // длинный заголовок (узкий экран, русский) — переносится, а не обрезается
+        Label { Layout.fillWidth: true; text: root.title; type: "bodyLarge"; wrapMode: Text.WordWrap; elide: Text.ElideNone }
         Label {
             visible: root.description !== ""
             Layout.fillWidth: true

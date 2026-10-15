@@ -26,7 +26,7 @@ Page {
         { key: "network", text: I18n.t("Network"), icon: "lan" },
         { key: "storage", text: I18n.t("Storage"), icon: "database" },
         { key: "updates", text: I18n.t("Updates"), icon: "download" }
-    ].filter(s => s.key !== "updates" || Qt.platform.os !== "android")
+    ]
     property string currentSection: "account"
 
     readonly property int screenCount: Qt.application.screens ? Qt.application.screens.length : 1
@@ -1047,6 +1047,8 @@ Page {
                     visible: Settings.lyricsVisibleLines !== "one"
                     horizontalAlignment: Settings.lyricsTextAlign === "center" ? Text.AlignHCenter : Text.AlignLeft
                     text: "♫  When the music starts to play"
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideNone
                     type: "bodyLarge"
                     color: Theme.fgSurfaceVariant
                     opacity: Settings.lyricsBlurAmount > 0.4 ? 0.35 : 0.6
@@ -1056,6 +1058,8 @@ Page {
                     horizontalAlignment: Settings.lyricsTextAlign === "center" ? Text.AlignHCenter : Text.AlignLeft
                     text: Settings.lyricsMode === "karaoke" ? "EVERY RHYTHM GUIDES THE WAY"
                         : "Every rhythm guides the way"
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideNone
                     font.bold: Settings.lyricsMode !== "normal"
                     font.pixelSize: Math.round(18 * Settings.lyricsFontScale * (Settings.lyricsMode === "spicy" ? 1.25 : (Settings.lyricsMode === "karaoke" ? 1.15 : 1.0)))
                     color: Theme.primary
@@ -1065,6 +1069,8 @@ Page {
                     visible: Settings.lyricsVisibleLines === "all"
                     horizontalAlignment: Settings.lyricsTextAlign === "center" ? Text.AlignHCenter : Text.AlignLeft
                     text: "Singing through the night and day"
+                    wrapMode: Text.WordWrap
+                    elide: Text.ElideNone
                     type: "bodyLarge"
                     color: Theme.fgSurfaceVariant
                     opacity: Settings.lyricsBlurAmount > 0.4 ? 0.35 : 0.6
@@ -1477,11 +1483,19 @@ Page {
             description: I18n.t("Spotify’s DJ talks between the songs it plays. Off: just the music")
             Switch { checked: Settings.djVoice; onToggled: c => Settings.djVoice = c }
         }
+        // Android: плеер в «острове» системы (Live Updates Android 16, атомный остров vivo)
+        SettingRow {
+            visible: MobileShell.islandSupported
+            title: I18n.t("Player in the system island")
+            description: I18n.t("Track and progress in the status bar chip, Now Bar, Super Island, Origin Island and similar")
+            Switch { checked: MobileShell.islandEnabled; onToggled: c => MobileShell.islandEnabled = c }
+        }
+
         SettingRow {
             title: I18n.t("Output device")
             description: I18n.t("Where this computer’s audio goes")
             MenuField {
-                width: page.compact ? 220 : 280
+                width: page.compact && !Theme.mobile ? 220 : 280
                 leadingIcon: "speaker"
                 model: [{ id: "", text: I18n.t("System default") }].concat((Settings.audioDevices ?? []).map(d => ({ id: d, text: d })))
                 currentValue: Settings.audioDevice
@@ -1838,10 +1852,8 @@ Page {
     }
 
     // ================= Обновления (app/UpdatesCard.qml) =================
-    // Android: APK ставит пользователь сам (магазин или файл) — встроенного обновления нет
     UpdatesCard {
         id: updatesCard
-        visible: Qt.platform.os !== "android"
         compact: page.compact
     }
 
