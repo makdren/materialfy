@@ -271,7 +271,7 @@ Item {
                     id: libSearch
                     width: parent.parent.fieldWidth
                     height: 40
-                    placeholder: I18n.t("Search in library")
+                    placeholder: Theme.mobile ? I18n.t("Search") : I18n.t("Search in library")
                     text: page.query
                     onTextChanged: page.query = text
                     Keys.onEscapePressed: { page.query = ""; page.searchOpen = false }
@@ -305,8 +305,15 @@ Item {
                         .concat([{ separator: true }, { id: "info", text: I18n.t("Order isn't saved to Spotify"), icon: "info", enabled: false }]), p)
                 }
             }
+            // телефон: одна кнопка-переключатель — пара «сетка | список» отнимала у заголовка «Библиотека» место
+            IconButton {
+                visible: Theme.mobile && !page.searchOpen
+                anchors.verticalCenter: parent.verticalCenter
+                icon: page.grid ? "view_list" : "grid_view"
+                onClicked: page._switchView(page.grid ? "list" : "grid")
+            }
             ButtonGroup {
-                visible: !(Theme.mobile && page.searchOpen)
+                visible: !Theme.mobile
                 anchors.verticalCenter: parent.verticalCenter
                 model: [{ icon: "grid_view" }, { icon: "view_list" }]
                 autoSelect: false

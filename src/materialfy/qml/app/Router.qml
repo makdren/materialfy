@@ -19,6 +19,52 @@ Item {
     // пересоздавать её при каждом возврате в раздел дорого и теряется прокрутка.
     property var keepAlive: ["home"]
     property var _kept: ({})                // имя → живой экземпляр из keepAlive
+    // Телефон: страницы keepAlive строятся заранее, в фоне по одной, — первый тап по разделу без сборки
+    property bool prewarmKept: false
+    function _prewarmKeptNext() {
+        if (_pending !== null || anim.running) {
+            keptTimer.restart()
+            return
+        }
+        const name = keepAlive.find(n => !_kept[n] && pages[n])
+        if (!name)
+            return
+        let comp = _components[name]
+        if (!comp) {
+            comp = Qt.createComponent(pages[name], Component.Asynchronous)
+            _components[name] = comp
+        }
+        if (comp.status === Component.Loading) {
+            comp.statusChanged.connect(function wait() { comp.statusChanged.disconnect(wait); keptTimer.restart() })
+            return
+        }
+        if (comp.status !== Component.Ready) {
+            console.error("Router prewarm:", comp.errorString())
+            return
+        }
+        const incubator = comp.incubateObject(container, { router: root, width: container.width, height: container.height,
+                                                           visible: false, opacity: 0 }, Qt.Asynchronous)
+        const done = function() {
+            if (incubator.status === Component.Loading)
+                return
+            if (incubator.status === Component.Ready) {
+                const item = incubator.object
+                if (_kept[name]) {
+                    item.destroy()          // пока строилась, раздел открыли — он уже собран синхронно
+                } else {
+                    item.width = Qt.binding(() => container.width)
+                    item.height = Qt.binding(() => container.height)
+                    _kept[name] = item
+                }
+            }
+            keptTimer.restart()
+        }
+        if (incubator.status === Component.Loading)
+            incubator.onStatusChanged = done
+        else
+            done()
+    }
+    Timer { id: keptTimer; interval: 250; onTriggered: root._prewarmKeptNext() }
 
     property var _components: ({})
     // Прогрев компиляции страниц: первое открытие каждой страницы компилирует её QML-цепочку
@@ -30,6 +76,8 @@ Item {
         if (_prewarmed)
             return
         _prewarmed = true
+        if (prewarmKept)
+            keptTimer.start()
         prewarmTimer.names = Object.keys(pages).filter(n => keepAlive.indexOf(n) < 0)
         prewarmTimer.at = 0
         prewarmTimer.restart()
@@ -147,6 +195,7 @@ Item {
         const kept = keep ? _kept[name] : null
         if (kept && !stack.some(e => e.item === kept)) {
             kept.opacity = 0
+            kept.visible = true
             return { name: name, props: {}, item: kept }
         }
         // Размер — сразу при создании: страница, созданная нулевой ширины, тут же «дорастала» до настоящей,
@@ -231,6 +280,12 @@ Item {
         // Разделы (fade through): новая страница всплывает снизу и чуть «дорастает» до размера.
         // Вглубь/назад (shared axis X): страницы едут по горизонтали навстречу друг другу.
         const axis = kind === "fade" ? "y" : "x"
+        // телефон: смена раздела в нижней навигации — короткий fade through, без долгого «доезда»
+        const quick = kind === "fade" && Theme.mobile
+        inMove.duration = quick ? 300 : 560
+        inScale.duration = quick ? 300 : 560
+        outMove.duration = quick ? 200 : 300
+        outScale.duration = quick ? 200 : 300
         const d = kind === "forward" ? 140 : kind === "back" ? -140 : 72
         outFade.target = from
         outMove.target = from

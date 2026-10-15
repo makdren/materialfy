@@ -623,11 +623,21 @@ Page {
             title: I18n.t("Language")
             // "system" (default) follows the OS UI language; the language names stay in their own language
             ButtonGroup {
+                // телефон: четыре языка в ряд не помещаются — выпадающий список
+                visible: !Theme.mobile
                 model: [I18n.t("System default"), "English", "Русский", "Português"]
                 autoSelect: false
                 size: page.compact ? "xs" : "s"
                 currentIndex: Math.max(0, ["system", "en", "ru", "pt"].indexOf(Settings.language))
                 onActivated: i => Settings.language = ["system", "en", "ru", "pt"][i]
+            }
+            MenuField {
+                visible: Theme.mobile
+                leadingIcon: "translate"
+                model: [{ id: "system", text: I18n.t("System default") }, { id: "en", text: "English" },
+                        { id: "ru", text: "Русский" }, { id: "pt", text: "Português" }]
+                currentValue: ["system", "en", "ru", "pt"].indexOf(Settings.language) >= 0 ? Settings.language : "system"
+                onActivated: v => Settings.language = v
             }
         }
 
@@ -966,10 +976,13 @@ Page {
             title: I18n.t("Animations")
             description: Settings.animations === "reduced" ? I18n.t("No motion or morphing: only short fades")
                          : Settings.animations === "full" ? I18n.t("All transitions, waves and morphs")
+                         : Theme.mobile ? (Settings.systemReducedMotion === true ? I18n.t("Follows the system: animations are currently off")
+                                                                                  : I18n.t("Follows the system animation setting"))
                          : Settings.systemReducedMotion === true ? I18n.t("Follows Windows: animation effects are currently off")
                          : I18n.t("Follows Windows “Animation effects”")
             ButtonGroup {
-                model: [I18n.t("System default"), I18n.t("Full"), I18n.t("Minimal")]
+                // телефон: «Как в системе» не помещается рядом с двумя другими
+                model: [Theme.mobile ? I18n.t("Auto") : I18n.t("System default"), I18n.t("Full"), I18n.t("Minimal")]
                 autoSelect: false
                 size: page.compact ? "xs" : "s"
                 currentIndex: ["system", "full", "reduced"].indexOf(Settings.animations)
@@ -1495,7 +1508,7 @@ Page {
             title: I18n.t("Output device")
             description: I18n.t("Where this computer’s audio goes")
             MenuField {
-                width: page.compact && !Theme.mobile ? 220 : 280
+                implicitWidth: page.compact && !Theme.mobile ? 220 : 280
                 leadingIcon: "speaker"
                 model: [{ id: "", text: I18n.t("System default") }].concat((Settings.audioDevices ?? []).map(d => ({ id: d, text: d })))
                 currentValue: Settings.audioDevice
@@ -1531,7 +1544,7 @@ Page {
             description: I18n.t("How this computer appears in Spotify on your phone and other devices")
             TextField {
                 id: deviceNameField
-                width: page.compact ? 220 : 280
+                implicitWidth: page.compact && !Theme.mobile ? 220 : 280
                 text: Settings.deviceName
                 placeholderText: Devices.thisDeviceName || "Materialfy"
                 leadingIcon: Theme.mobile ? "smartphone" : "computer"
@@ -1662,17 +1675,18 @@ Page {
             }
         }
 
-        readonly property var modes: ["off", "system", "http", "socks"]
+        // Android: системный прокси для Rust-части не виден (переменных окружения нет) — «как в системе» = напрямую
+        readonly property var modes: Theme.mobile ? ["off", "http", "socks"] : ["off", "system", "http", "socks"]
         SettingRow {
             title: I18n.t("Proxy")
-            description: proxy.mode === "off" ? I18n.t("Direct, no proxy")
+            description: proxy.mode === "off" || (Theme.mobile && proxy.mode === "system") ? I18n.t("Direct, no proxy")
                          : proxy.mode === "system" ? I18n.t("Same as Windows settings")
                          : proxy.mode === "http" ? I18n.t("HTTP proxy (CONNECT)") : I18n.t("SOCKS5 proxy")
             ButtonGroup {
-                model: [I18n.t("Off"), I18n.t("System proxy"), "HTTP", "SOCKS5"]
+                model: Theme.mobile ? [I18n.t("Off"), "HTTP", "SOCKS5"] : [I18n.t("Off"), I18n.t("System proxy"), "HTTP", "SOCKS5"]
                 autoSelect: false
                 size: page.compact ? "xs" : "s"
-                currentIndex: networkCard.modes.indexOf(proxy.mode)
+                currentIndex: Math.max(0, networkCard.modes.indexOf(proxy.mode))
                 onActivated: i => proxy.mode = networkCard.modes[i]
             }
         }

@@ -472,7 +472,7 @@ Page {
                         description: I18n.t("How this computer appears on phones and speakers")
                         TextField {
                             id: nameField
-                            width: Theme.mobile ? 280 : 240
+                            implicitWidth: Theme.mobile ? 280 : 240
                             trailingIcon: "edit"
                             onTrailingClicked: nameField.inputItem.forceActiveFocus()
                             leadingIcon: Theme.mobile ? "smartphone" : "computer"
@@ -525,9 +525,9 @@ Page {
                     DevRow {
                         title: I18n.t("Audio output")
                         MenuField {
-                            width: Theme.mobile ? 280 : 240
+                            implicitWidth: Theme.mobile ? 280 : 240
                             leadingIcon: "headphones"
-                            model: [{ id: "", text: I18n.t("System default output") }]
+                            model: [{ id: "", text: Theme.mobile ? I18n.t("System default") : I18n.t("System default output") }]
                                    .concat((Settings.audioDevices ?? []).map(d => ({ id: d, text: d })))
                             currentValue: Settings.audioDevice
                             onActivated: v => Settings.audioDevice = v

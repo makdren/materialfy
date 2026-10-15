@@ -25,6 +25,9 @@ Item {
     signal edited()
 
     implicitWidth: 240
+    // в строке настроек на узком телефоне — не шире строки
+    property real maxWidth: parent && parent.objectName === "settingSlot" ? parent.availableWidth : Infinity
+    width: Math.min(implicitWidth, maxWidth)
     implicitHeight: column.implicitHeight
     opacity: enabled ? 1 : Theme.stateLayer.disabledContent
 

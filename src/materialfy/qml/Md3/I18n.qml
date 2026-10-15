@@ -47,8 +47,27 @@ QtObject {
     }
 
     // Translation of an English source string; extra arguments substitute {0}, {1}…
+    // Фразы, где автозамена «компьютер → телефон» даёт «телефон виден на телефоне»: на телефоне — свой текст
+    // (английский здесь, переводы — ключи "phone:<английский>" в словарях)
+    readonly property var _phoneEn: ({
+        "How this computer appears on phones and speakers": "How this phone appears on other devices and speakers",
+        "How this computer appears in Spotify on your phone and other devices": "How this phone appears in Spotify on your other devices",
+        "Materialfy becomes a Spotify Connect device: music plays here, and your phone sees this computer in its device list. Confirm in your browser; after that your library also goes through this sign-in, with no Web API limits.":
+            "Materialfy becomes a Spotify Connect device: music plays here, and your computer and speakers see this phone in their device lists. Confirm in your browser; after that your library also goes through this sign-in, with no Web API limits.",
+        "Remote: move music between your phone and computer": "Remote: move music between this phone, a computer and speakers",
+        "Without Premium you can sign in another way — through the Web API: you get your library, search and a remote for phones and speakers, but no music on this computer. Spotify sometimes limits these requests.":
+            "Without Premium you can sign in another way — through the Web API: you get your library, search and a remote for other devices and speakers, but no music on this phone. Spotify sometimes limits these requests.",
+        "Open Spotify on a phone or speaker and it will show up here. Or start playing music on this computer.":
+            "Open Spotify on a computer or speaker and it will show up here. Or start playing music on this phone."
+    })
+
     function t(en) {
         const d = _dictOf(Translations.language)
+        if (Theme.mobile && _phoneEn[en] !== undefined) {
+            const ps = d ? d["phone:" + en] : undefined
+            const pp = typeof ps === "string" ? ps : _phoneEn[en]
+            return arguments.length > 1 ? format(pp, Array.prototype.slice.call(arguments, 1)) : pp
+        }
         const s = d ? d[en] : undefined
         const pattern = phone(typeof s === "string" ? s : en)
         return arguments.length > 1 ? format(pattern, Array.prototype.slice.call(arguments, 1)) : pattern

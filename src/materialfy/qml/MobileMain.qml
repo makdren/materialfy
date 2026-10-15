@@ -253,7 +253,10 @@ Window {
                         account: Qt.resolvedUrl("app/pages/AccountPage.qml"),
                         playback: Qt.resolvedUrl("app/pages/PlaybackSetupPage.qml")
                     })
-                    keepAlive: ["home", "library"]
+                    // разделы нижней навигации живут между переключениями: «Настройки» и «Поиск» пересоздавались
+                    // на каждый тап, на телефоне это заметная пауза
+                    keepAlive: ["home", "search", "library", "settings"]
+                    prewarmKept: true
                     pushOnReset: ["account", "playback", "liked", "releases", "radio", "folder"]
                     Component.onCompleted: {
                         Qt.callLater(router._prewarm)

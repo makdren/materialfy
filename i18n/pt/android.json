@@ -8,5 +8,13 @@
   "Confirm the update in the system window, then open Materialfy again": "Confirme a atualização na janela do sistema e abra o Materialfy de novo",
   "Allow Materialfy to install apps in the settings that opened, then press Install again": "Permita que o Materialfy instale apps nas configurações que se abriram e toque em Instalar de novo",
   "Player in the system island": "Player na ilha do sistema",
-  "Track and progress in the status bar chip, Now Bar, Super Island, Origin Island and similar": "Faixa e progresso no chip da barra de status, Now Bar, Super Island, Ilha Atômica e similares"
+  "Track and progress in the status bar chip, Now Bar, Super Island, Origin Island and similar": "Faixa e progresso no chip da barra de status, Now Bar, Super Island, Ilha Atômica e similares",
+  "Follows the system: animations are currently off": "Segue o sistema: as animações estão desligadas agora",
+  "Follows the system animation setting": "Segue a configuração de animações do sistema",
+  "phone:How this computer appears on phones and speakers": "Como este celular aparece em outros dispositivos e caixas de som",
+  "phone:How this computer appears in Spotify on your phone and other devices": "Como este celular aparece no Spotify nos seus outros dispositivos",
+  "phone:Materialfy becomes a Spotify Connect device: music plays here, and your phone sees this computer in its device list. Confirm in your browser; after that your library also goes through this sign-in, with no Web API limits.": "O Materialfy vira um dispositivo Spotify Connect: a música toca aqui, e o computador e as caixas de som veem este celular na lista de dispositivos. Confirme no navegador; depois disso a biblioteca também passa por este login, sem os limites da Web API.",
+  "phone:Remote: move music between your phone and computer": "Controle remoto: leve a música entre este celular, um computador e caixas de som",
+  "phone:Without Premium you can sign in another way — through the Web API: you get your library, search and a remote for phones and speakers, but no music on this computer. Spotify sometimes limits these requests.": "Sem Premium dá para entrar de outro jeito — pela Web API: você tem biblioteca, busca e controle remoto de outros dispositivos e caixas de som, mas não a música neste celular. O Spotify às vezes limita essas requisições.",
+  "phone:Open Spotify on a phone or speaker and it will show up here. Or start playing music on this computer.": "Abra o Spotify em um computador ou caixa de som e ele vai aparecer aqui. Ou comece a tocar música neste celular."
 }

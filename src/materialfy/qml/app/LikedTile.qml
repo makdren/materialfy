@@ -80,7 +80,14 @@ Item {
                 maximumLineCount: 2
                 elide: Text.ElideRight
             }
-            Label { text: I18n.t("Liked Songs"); type: "headlineMedium"; weight: 500; color: Theme.fgPrimaryContainer }
+            // узкая плитка (телефон, русский): заголовок ужимается, а не заезжает под кнопку
+            Label {
+                Layout.fillWidth: true
+                text: I18n.t("Liked Songs"); type: "headlineMedium"; weight: 500; color: Theme.fgPrimaryContainer
+                fontSizeMode: Text.HorizontalFit
+                minimumPixelSize: 18
+                elide: Text.ElideRight
+            }
             Label {
                 text: Library.liked && Library.liked.loading && root.trackCount === 0 ? I18n.t("Loading…")
                     : I18n.n(root.trackCount, "{0} track", "{0} tracks")

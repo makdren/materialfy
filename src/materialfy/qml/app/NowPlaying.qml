@@ -249,6 +249,8 @@ Item {
                 // ширина колонки из размеров окна, а не из уже разложенной колонки: иначе обложка и подписи
                 // меняют ширину, от которой сами зависят (recursive rearrange)
                 readonly property real colWidth: root.layoutCompact ? body.width : Math.min(460, root.width * 0.42)
+                // очень узкий телефон (320): кнопки управления меньше, иначе ряд шире экрана
+                readonly property string ctl: root.layoutCompact && colWidth < 4 * 56 + 72 + 8 ? "s" : "m"
 
                 Item { Layout.fillHeight: true }
 
@@ -407,9 +409,10 @@ Item {
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 4
-                    spacing: 12
+                    // узкий телефон (< 380): 4 × 56 + 72 с промежутками по 12 шире колонки — распирали весь экран
+                    spacing: root.layoutCompact ? Math.max(2, Math.min(12, (left.colWidth - 4 * (left.ctl === "s" ? 40 : 56) - 72) / 4)) : 12
                     IconButton {
-                        icon: Player.isEpisode ? "replay_10" : "shuffle"; size: "m"
+                        icon: Player.isEpisode ? "replay_10" : "shuffle"; size: left.ctl
                         checkable: !Player.isEpisode; autoToggle: false; checked: !Player.isEpisode && Player.shuffle
                         enabled: Player.isEpisode || Player.source !== "radio"
                         style: checked ? "tonal" : "standard"
@@ -420,7 +423,7 @@ Item {
                                 Player.shuffle = !Player.shuffle
                         }
                     }
-                    IconButton { icon: "skip_previous"; size: "m"; iconColor: Theme.fgSurface; onClicked: Player.previous() }
+                    IconButton { icon: "skip_previous"; size: left.ctl; iconColor: Theme.fgSurface; onClicked: Player.previous() }
                     PlayButton {
                         size: root.layoutCompact ? 72 : 96
                         playing: Player.playing
@@ -429,9 +432,9 @@ Item {
                         iconColor: Theme.fgPrimaryContainer
                         onClicked: Player.togglePlay()
                     }
-                    IconButton { icon: "skip_next"; size: "m"; iconColor: Theme.fgSurface; onClicked: Player.next() }
+                    IconButton { icon: "skip_next"; size: left.ctl; iconColor: Theme.fgSurface; onClicked: Player.next() }
                     IconButton {
-                        icon: Player.isEpisode ? "forward_30" : Player.repeat === "one" ? "repeat_one" : "repeat"; size: "m"
+                        icon: Player.isEpisode ? "forward_30" : Player.repeat === "one" ? "repeat_one" : "repeat"; size: left.ctl
                         checkable: !Player.isEpisode; autoToggle: false; checked: !Player.isEpisode && Player.repeat !== "off"
                         style: checked ? "tonal" : "standard"
                         onClicked: Player.isEpisode ? Player.seekRelative(30000) : Player.cycleRepeat()
