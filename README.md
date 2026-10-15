@@ -9,13 +9,15 @@
 </picture>
 </h1>
 
-[![Release build](https://github.com/fatyzzz/materialfy/actions/workflows/release.yml/badge.svg)](https://github.com/fatyzzz/materialfy/actions/workflows/release.yml)
-[![Release](https://img.shields.io/github/v/release/fatyzzz/materialfy?label=release)](https://github.com/fatyzzz/materialfy/releases/latest)
+[![Release build](https://github.com/makdren/materialfy/actions/workflows/release.yml/badge.svg)](https://github.com/makdren/materialfy/actions/workflows/release.yml)
+[![Release](https://img.shields.io/github/v/release/makdren/materialfy?label=release)](https://github.com/makdren/materialfy/releases/latest)
+[![Build](https://github.com/makdren/materialfy/actions/workflows/build.yml/badge.svg)](https://github.com/makdren/materialfy/actions/workflows/build.yml)
 
-Desktop Spotify client built with Rust and Qt Quick, with a Material 3 Expressive interface.<br>
-Windows and Linux; macOS is experimental.
+Spotify client built with Rust and Qt Quick, with a Material 3 Expressive interface.<br>
+Android, Windows and Linux; macOS is experimental.
 
 [Download](#download) ·
+[Android](#android) ·
 [Screenshots](#screenshots) ·
 [Features](#features) ·
 [Limitations](#whats-missing-and-why) ·
@@ -38,10 +40,15 @@ The project is assembled from two MIT-licensed projects: the Spotify side comes 
 [yamusic-md3](https://github.com/yaskorinov/yamusic-md3) (yaskorinov). See
 [Origin and license](#origin-and-license) for details.
 
+> [!NOTE]
+> This is a fork of [fatyzzz/materialfy](https://github.com/fatyzzz/materialfy) with an Android version: the same
+> app with a phone layout, background playback, the player in the system "island" and APK updates from inside
+> the app. Desktop builds match upstream; upstream changes are merged into this fork.
+
 ## Download
 
-Ready builds of every version are on the [Releases page](https://github.com/fatyzzz/materialfy/releases).
-Take the file for your system from the [latest release](https://github.com/fatyzzz/materialfy/releases/latest):
+Ready builds of every version are on the [Releases page](https://github.com/makdren/materialfy/releases).
+Take the file for your system from the [latest release](https://github.com/makdren/materialfy/releases/latest):
 
 | System | File |
 | --- | --- |
@@ -50,10 +57,40 @@ Take the file for your system from the [latest release](https://github.com/fatyz
 | Linux aarch64 | `Materialfy-<version>-aarch64.AppImage` or `materialfy-<version>-linux-aarch64.tar.gz` |
 | macOS 13+, Apple silicon | `Materialfy-<version>-macos-arm64.dmg` (experimental) |
 | macOS 13+, Intel | `Materialfy-<version>-macos-x86_64.dmg` (experimental) |
+| Android 9+, arm64 | `Materialfy-<version>-arm64-v8a.apk` (see [Android](#android)) |
 
 `SHA256SUMS.txt` in the same release lists the checksums. Starting with 0.2.1 the app checks Releases for new
 versions on its own (Settings → Updates). The installer, the portable folder and the AppImage download and
-apply an update in place; on macOS the new `.dmg` opens; a copy from `tar.gz` only links to the release page.
+apply an update in place; on macOS the new `.dmg` opens; a copy from `tar.gz` only links to the release page. On
+Android the new APK is downloaded, checked against the checksum and handed to the system installer.
+
+## Android
+
+<p align="center"><img src="docs/screenshots/android/phone-en.png" width="100%" alt="Materialfy on a phone: home, album, now playing, track menu"></p>
+<p align="center"><sub>Home, album, Now Playing and the track menu. Captured with test data in a 412×915 window.</sub></p>
+
+The phone gets the same features as the desktop, in a one-handed layout: bottom navigation, a mini player above
+it, a full-screen player (swipe down to close), menus as bottom sheets, long press instead of right click, and
+the system Back button.
+
+- Music keeps playing in the background: a media notification with cover and seeking, the lock screen, headset and
+  Bluetooth buttons, pausing for calls and when headphones are unplugged.
+- The player in the system "island": on Android 16 as a Live Update (status bar chip, Samsung Now Bar, HyperOS
+  Super Island, ColorOS Fluid Cloud), on vivo in the OriginOS Atomic Island. It can be turned off in Settings →
+  Playback.
+- The phone shows up in Spotify Connect as a smartphone, so music can move between it and the computer.
+- The "Listening to Spotify" status in Discord comes from the Spotify ↔ Discord connection and works the same
+  on the phone.
+- Updates: Settings → Updates downloads the APK from the latest release and installs it over the current one.
+
+**Installing.** Download `Materialfy-<version>-arm64-v8a.apk` from the [latest release](https://github.com/makdren/materialfy/releases/latest)
+and open it. Android asks once to allow installs from the browser or file manager. If a test build signed with a
+different key (`-debugsigned.apk`) is installed, uninstall it first: the release APK cannot be installed over it.
+Sign-in works as on the desktop: the browser opens, and after signing in you return to the app.
+
+You need an arm64 phone with Android 9 or later, and Spotify Premium for audio. The Android version is still
+experimental: please report problems in [Issues](https://github.com/makdren/materialfy/issues), ideally with the
+phone model and Android version.
 
 ## Screenshots
 
@@ -136,7 +173,6 @@ Taken with a Premium account and music playing; the colours follow the cover of 
   Connect, and other Spotify devices see the track position with corrections once per second.
 - Tracks cannot be downloaded for offline listening; the app does not bypass DRM. The audio cache only speeds
   up repeat playback.
-- The app does not update itself; a new version has to be installed manually.
 - The shared Web API Client ID is one for all users of the app, and Spotify often rate-limits it. That is why
   the app goes through your Spotify session first and keeps the Web API as a fallback. Details and how to set up
   your own Client ID are in [Spotify session and Web API](#spotify-session-and-web-api).
@@ -150,7 +186,7 @@ Taken with a Premium account and music playing; the colours follow the cover of 
 
 - A Spotify account. Premium is needed for audio on this computer and for radio.
 - Windows 10 1809 or later (x64); Linux x86_64 or aarch64; macOS 13 or later (the build is experimental; media
-  keys on macOS are untested).
+  keys on macOS are untested); Android 9 or later (arm64).
 - Free local ports 8989 and 8898: Spotify sends the browser back to them after sign-in. If the firewall asks,
   allow connections on `127.0.0.1`.
 
@@ -164,7 +200,7 @@ You need Rust, Qt 6.12 and Build Tools for Visual Studio (details in [Building](
 the app and the installer:
 
 ```powershell
-git clone https://github.com/fatyzzz/materialfy
+git clone https://github.com/makdren/materialfy
 cd materialfy
 .\build_windows.ps1 -QtDir C:\Qt\6.12.0\msvc2022_64
 ```
@@ -175,7 +211,7 @@ does not need administrator rights and installs into `%LocalAppData%\Programs\Ma
 ### Linux
 
 ```bash
-git clone https://github.com/fatyzzz/materialfy
+git clone https://github.com/makdren/materialfy
 cd materialfy
 ./install.sh
 ```
@@ -193,6 +229,11 @@ the script again updates the app.
 ### macOS
 
 There is no installer; build the `.app` as described in [Building](#macos-experimental).
+
+### Android
+
+The release APK is covered in [Android](#android); building the APK from source is in
+[Building](#android-experimental).
 
 ## First run
 
@@ -472,6 +513,9 @@ runtime, and the Qt UI thread receives ready-made state snapshots.
 | `materialfy` | the executable: QML bridges, command-line flags, image cache, window frame on Windows |
 
 ## Origin and license
+
+This repository is a fork of [fatyzzz/materialfy](https://github.com/fatyzzz/materialfy) that adds the Android
+version (`android/`, `MobileMain.qml`, `crates/materialfy/cpp/mobile.cpp`). The license is the same.
 
 Materialfy is based on two MIT-licensed projects:
 
