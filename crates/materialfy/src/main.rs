@@ -62,6 +62,16 @@ mod android {
             std::env::set_var("XDG_DATA_HOME", format!("{home}/data"));
             std::env::set_var("XDG_STATE_HOME", format!("{home}/state"));
             std::env::set_var("XDG_CACHE_HOME", cache);
+            // корневые сертификаты: rustls-native-certs (reqwest, librespot) ищет их в /etc/ssl и т. п., а на
+            // Android они в своём каталоге — без него любой HTTPS падает, и вход висит на «Входим…».
+            // Android 14+ обновляет их через модуль conscrypt, раньше — только /system.
+            if std::env::var_os("SSL_CERT_DIR").is_none()
+                && let Some(dir) = ["/apex/com.android.conscrypt/cacerts", "/system/etc/security/cacerts"]
+                    .into_iter()
+                    .find(|dir| std::fs::read_dir(dir).is_ok_and(|mut entries| entries.next().is_some()))
+            {
+                std::env::set_var("SSL_CERT_DIR", dir);
+            }
         }
         redirect_stderr_to_logcat();
     }
