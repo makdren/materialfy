@@ -127,6 +127,21 @@ public final class MobileBridge
         }
     }
 
+    // «Поделиться журналом» (настройки): текст в системное окно выбора — мессенджер, почта, «Копировать»
+    public static void shareText(Context context, String title, String text)
+    {
+        Intent send = new Intent(Intent.ACTION_SEND)
+                          .setType("text/plain")
+                          .putExtra(Intent.EXTRA_SUBJECT, title)
+                          .putExtra(Intent.EXTRA_TEXT, text);
+        Intent chooser = Intent.createChooser(send, title).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            context.startActivity(chooser);
+        } catch (RuntimeException e) {
+            android.util.Log.w("materialfy", "share: " + e);
+        }
+    }
+
     public static void haptic(Context context)
     {
         Activity a = activityOf(context);

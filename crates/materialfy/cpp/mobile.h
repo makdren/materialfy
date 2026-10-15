@@ -50,6 +50,8 @@ public:
   Q_INVOKABLE void moveTaskToBack();
   // Короткий тактильный отклик (долгое нажатие, переключатели)
   Q_INVOKABLE void haptic();
+  // Конец журнала приложения (MATERIALFY_LOG_FILE) — в системное окно «Поделиться» (Telegram, почта, буфер)
+  Q_INVOKABLE void shareLog();
 
 signals:
   void islandEnabledChanged();

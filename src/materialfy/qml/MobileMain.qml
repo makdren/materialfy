@@ -110,6 +110,7 @@ Window {
             case "previous": Player.previous(); break
             case "seek": Player.seekMs(arg); break
             case "stop": Player.pause(); break
+            case "back": win.goBack(); break     // «Назад» системы (MaterialfyActivity)
             }
         }
     }

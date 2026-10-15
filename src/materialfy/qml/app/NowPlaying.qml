@@ -158,15 +158,22 @@ Item {
         // Блокирует клики по приложению под плеером
         MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
 
-        // Телефон: свайп вниз по плееру — свернуть (текст песни и очередь листаются сами — там жест их)
-        DragHandler {
-            id: swipeDown
-            enabled: Theme.mobile && root.open && !(root.layoutCompact && root.sheetOpen)
-            target: null
-            xAxis.enabled: false
-            onActiveChanged: {
-                if (!active && translation.y > 120)
-                    root.hide()
+        // Телефон: свайп вниз по плееру — свернуть (текст песни и очередь листаются сами — там жест их).
+        // Слой поверх всего содержимого: на самом content обработчик не видел касаний — их принимали MouseArea
+        // выше (блокировка кликов, кнопки), и до обработчиков родителя нажатие не доходило. Отсюда DragHandler
+        // видит нажатие первым и держит его пассивно: тапы и горизонтальные ползунки работают как раньше.
+        Item {
+            anchors.fill: parent
+            z: 100
+            DragHandler {
+                id: swipeDown
+                enabled: Theme.mobile && root.open && !(root.layoutCompact && root.sheetOpen)
+                target: null
+                xAxis.enabled: false
+                onActiveChanged: {
+                    if (!active && translation.y > 120)
+                        root.hide()
+                }
             }
         }
 

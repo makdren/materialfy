@@ -97,6 +97,28 @@ done)
 # Переводы интерфейса i18n/*.json встроены в бинарник (mf-i18n/build.rs); переводы Qt берёт androiddeployqt
 cp "$lib" "$out/libmaterialfy_$ABI.so"
 
+# OpenSSL 3 для Qt Network: TLS-плагин Qt (qopensslbackend) грузит libssl_3/libcrypto_3 сам, но в Qt для Android
+# их нет — без них Qt не открывает ни одной https-ссылки (обложки, аватары). Сборки KDAB, которые советует Qt;
+# коммит зафиксирован. OPENSSL_ANDROID — свой каталог с libssl_3.so и libcrypto_3.so для $ABI.
+OPENSSL_REV=b71f1470962019bd89534a2919f5925f93bc5779
+ssl_dir="${OPENSSL_ANDROID:-}"
+if [[ -z "$ssl_dir" ]]; then
+  ssl_src="$root/target/ext/android_openssl"
+  if [[ "$(git -C "$ssl_src" rev-parse HEAD 2>/dev/null)" != "$OPENSSL_REV" ]]; then
+    rm -rf "$ssl_src"
+    mkdir -p "$ssl_src"
+    git -C "$ssl_src" init -q
+    git -C "$ssl_src" remote add origin https://github.com/KDAB/android_openssl
+    git -C "$ssl_src" sparse-checkout set "ssl_3/$ABI"
+    git -C "$ssl_src" fetch -q --depth 1 --filter=blob:none origin "$OPENSSL_REV"
+    git -C "$ssl_src" checkout -q FETCH_HEAD
+  fi
+  ssl_dir="$ssl_src/ssl_3/$ABI"
+fi
+for so in libssl_3.so libcrypto_3.so; do
+  [[ -f "$ssl_dir/$so" ]] || { echo "OpenSSL for Android not found: $ssl_dir/$so" >&2; exit 1; }
+done
+
 cat > "$out/deployment-settings.json" <<JSON
 {
   "description": "Materialfy",
@@ -121,6 +143,7 @@ cat > "$out/deployment-settings.json" <<JSON
   "qml-import-paths": ["$root/src/materialfy/qml"],
   "stdcpp-path": "$toolchain/sysroot/usr/lib/",
   "application-binary": "materialfy",
+  "android-extra-libs": "$ssl_dir/libssl_3.so,$ssl_dir/libcrypto_3.so",
   "qrcFiles": "",
   "zstdCompression": false
 }

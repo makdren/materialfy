@@ -66,6 +66,15 @@ mod android {
                 std::env::set_var("TMPDIR", &cache);
             }
             std::env::set_var("XDG_CACHE_HOME", cache);
+            // журнал — для отчёта об ошибке без adb: свои крейты подробнее (info), сторонние — как на компьютере
+            if std::env::var_os("RUST_LOG").is_none() {
+                std::env::set_var(
+                    "RUST_LOG",
+                    "warn,materialfy=info,sf_services=info,sf_player=info,sf_auth=info,sf_api=info,mf_lyrics=info",
+                );
+            }
+            // журнал для «Поделиться журналом» в настройках (MobileShell::shareLog читает его же)
+            std::env::set_var("MATERIALFY_LOG_FILE", format!("{home}/materialfy.log"));
             // корневые сертификаты: rustls-native-certs (reqwest, librespot) ищет их в /etc/ssl и т. п., а на
             // Android они в своём каталоге — без него любой HTTPS падает, и вход висит на «Входим…».
             // Android 14+ обновляет их через модуль conscrypt, раньше — только /system.
@@ -102,7 +111,12 @@ mod android {
         -> std::ffi::c_int;
     }
 
+    /// Журнал больше 1 МБ при старте уходит в .old: в файле — этот запуск и предыдущий
+    const LOG_ROTATE_BYTES: u64 = 1 << 20;
+
     /// eprintln! и tracing пишут в stderr, которого на Android никто не читает: труба → logcat (тег materialfy)
+    /// и файл журнала (MATERIALFY_LOG_FILE) — его пользователь отправляет из настроек без adb. Сообщения Qt и QML
+    /// сюда же направляет обработчик из cpp/mobile.cpp.
     fn redirect_stderr_to_logcat() {
         use std::io::BufRead as _;
         use std::os::fd::FromRawFd as _;
@@ -116,9 +130,24 @@ mod android {
         }
         // SAFETY: fds[0] — только что созданный конец трубы, владеет им поток ниже
         let reader = unsafe { std::fs::File::from_raw_fd(fds[0]) };
+        let mut file = std::env::var_os("MATERIALFY_LOG_FILE").and_then(|path| {
+            let path = std::path::PathBuf::from(path);
+            if std::fs::metadata(&path).is_ok_and(|m| m.len() > LOG_ROTATE_BYTES) {
+                let _ = std::fs::rename(&path, path.with_extension("log.old"));
+            }
+            std::fs::OpenOptions::new().create(true).append(true).open(&path).ok()
+        });
+        if let Some(file) = file.as_mut() {
+            use std::io::Write as _;
+            let _ = writeln!(file, "---- Materialfy {} started ----", env!("CARGO_PKG_VERSION"));
+        }
         let _ = std::thread::Builder::new().name("logcat".into()).spawn(move || {
+            use std::io::Write as _;
             let tag = c"materialfy";
             for line in std::io::BufReader::new(reader).lines().map_while(Result::ok) {
+                if let Some(file) = file.as_mut() {
+                    let _ = writeln!(file, "{line}");
+                }
                 if let Ok(text) = std::ffi::CString::new(line) {
                     // 5 — ANDROID_LOG_WARN
                     // SAFETY: строки C с нулём в конце

@@ -1880,6 +1880,19 @@ Page {
                                               : I18n.t("Materialfy {0}", Updater.appVersion)
             description: I18n.t("An unofficial Spotify client in Material 3 Expressive style. Playback requires Spotify Premium; no lossless or offline downloads.")
         }
+        // Телефон: журнал без adb — для отчёта, когда что-то не работает (вход, звук, тексты)
+        SettingRow {
+            visible: MobileShell.android
+            title: I18n.t("App log")
+            description: I18n.t("For a bug report: what the app did at sign-in, playback and lyrics. No passwords or keys.")
+            Button {
+                style: "tonal"
+                size: "s"
+                icon: "share"
+                text: I18n.t("Share")
+                onClicked: MobileShell.shareLog()
+            }
+        }
         Label {
             Layout.fillWidth: true
             text: I18n.t("Free software under GPL-3.0-or-later. Based on spotifast (crmne, MIT) and yamusic-md3 (yaskorinov, MIT); not affiliated with Spotify AB. Playback: librespot (MIT). Fonts: Google Sans (OFL), Material Symbols (Apache 2.0).")

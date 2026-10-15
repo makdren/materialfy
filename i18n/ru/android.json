@@ -17,5 +17,7 @@
   "phone:Remote: move music between your phone and computer": "Пульт: переносите музыку между телефоном, компьютером и колонками",
   "phone:Without Premium you can sign in another way — through the Web API: you get your library, search and a remote for phones and speakers, but no music on this computer. Spotify sometimes limits these requests.": "Без Premium можно войти иначе — через Web API: будут медиатека, поиск и пульт для других устройств и колонок, но не музыка на этом телефоне. Spotify иногда ограничивает такие запросы.",
   "phone:Open Spotify on a phone or speaker and it will show up here. Or start playing music on this computer.": "Откройте Spotify на компьютере или колонке, и они появятся здесь. Или включите музыку на этом телефоне.",
-  "phone:The playing track’s cover, blurred behind the whole window as a soft colored glow": "Размытая обложка играющего трека за всем экраном — слабым цветным свечением"
+  "phone:The playing track’s cover, blurred behind the whole window as a soft colored glow": "Размытая обложка играющего трека за всем экраном — слабым цветным свечением",
+  "App log": "Журнал приложения",
+  "For a bug report: what the app did at sign-in, playback and lyrics. No passwords or keys.": "Для сообщения об ошибке: что приложение делало при входе, воспроизведении и загрузке текстов. Без паролей и ключей."
 }

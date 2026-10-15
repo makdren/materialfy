@@ -175,22 +175,29 @@ Item {
         }
     }
 
-    DragHandler {
-        id: swipe
-        target: null
-        enabled: Player.hasTrack
-        onActiveChanged: {
-            if (active)
-                return
-            const t = translation
-            if (Math.abs(t.x) > 72 && Math.abs(t.x) > Math.abs(t.y)) {
-                MobileShell.haptic()
-                if (t.x < 0)
-                    Player.next()
-                else
-                    Player.previous()
-            } else if (t.y < -40 && Math.abs(t.y) > Math.abs(t.x)) {
-                root._open()
+    // Слой поверх плашки: обработчик на самом root не видел касаний — их забирали кнопки и область нажатия
+    // плашки (MouseArea принимает нажатие, до обработчиков родителя оно не доходит). Здесь DragHandler получает
+    // нажатие первым, держит его пассивно (тап по кнопке проходит) и забирает жест, когда палец поехал.
+    Item {
+        anchors.fill: parent
+        z: 10
+        DragHandler {
+            id: swipe
+            target: null
+            enabled: Player.hasTrack
+            onActiveChanged: {
+                if (active)
+                    return
+                const t = translation
+                if (Math.abs(t.x) > 72 && Math.abs(t.x) > Math.abs(t.y)) {
+                    MobileShell.haptic()
+                    if (t.x < 0)
+                        Player.next()
+                    else
+                        Player.previous()
+                } else if (t.y < -40 && Math.abs(t.y) > Math.abs(t.x)) {
+                    root._open()
+                }
             }
         }
     }

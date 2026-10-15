@@ -9,6 +9,9 @@
 #include <QtCore/QPointer>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QUrl>
+#include <QtCore/QtLogging>
+
+#include <cstdio>
 #include <QtGui/QDesktopServices>
 
 #if defined(Q_OS_ANDROID)
@@ -258,6 +261,60 @@ MobileShell::haptic()
 }
 
 void
+MobileShell::shareLog()
+{
+#if defined(Q_OS_ANDROID)
+  // Хвост журнала: прошлый запуск (.old) + этот. Не больше ~150 КБ — Intent идёт через Binder (лимит ~1 МБ на всё)
+  constexpr qint64 LIMIT = 150 * 1024;
+  const QString path = qEnvironmentVariable("MATERIALFY_LOG_FILE");
+  QByteArray data;
+  for (const QString& file : { path + QStringLiteral(".old"), path }) {
+    QFile f(file);
+    if (f.open(QIODevice::ReadOnly))
+      data += f.readAll();
+  }
+  if (data.size() > LIMIT) {
+    data = data.right(LIMIT);
+    const qsizetype nl = data.indexOf('\n');
+    if (nl >= 0)
+      data = data.mid(nl + 1);
+  }
+  const QString text = QString::fromUtf8(data);
+  QNativeInterface::QAndroidApplication::runOnAndroidMainThread([text] {
+    QJniObject::callStaticMethod<void>(BRIDGE,
+                                       "shareText",
+                                       "(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)V",
+                                       context_object().object(),
+                                       jstr(QStringLiteral("materialfy.log")).object<jstring>(),
+                                       jstr(text).object<jstring>());
+    QJniEnvironment env;
+    env.checkAndClearExceptions();
+  });
+#endif
+}
+
+#if defined(Q_OS_ANDROID)
+namespace {
+// Сообщения Qt и ошибки QML — в stderr: на Android его читает поток Rust (main.rs) и пишет в logcat и в журнал
+void
+log_to_stderr(QtMsgType type, const QMessageLogContext& context, const QString& message)
+{
+  const char* level = type == QtDebugMsg     ? "debug"
+                      : type == QtInfoMsg    ? "info"
+                      : type == QtWarningMsg ? "warning"
+                      : type == QtCriticalMsg ? "critical"
+                                              : "fatal";
+  const QByteArray text = message.toUtf8();
+  if (context.file && context.line > 0)
+    std::fprintf(stderr, "Qt %s: %s (%s:%d)\n", level, text.constData(), context.file, context.line);
+  else
+    std::fprintf(stderr, "Qt %s: %s\n", level, text.constData());
+  std::fflush(stderr);
+}
+}
+#endif
+
+void
 mobile_post_media_command(const QString& command, qint64 arg)
 {
   QCoreApplication* app = QCoreApplication::instance();
@@ -295,6 +352,7 @@ android_prepare_assets(const QString& version)
 {
 #if defined(Q_OS_ANDROID)
   register_natives();
+  qInstallMessageHandler(log_to_stderr);
   const QString base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
   const QString root = base + QStringLiteral("/bundle-") + version;
   const QString stamp = root + QStringLiteral("/.complete");

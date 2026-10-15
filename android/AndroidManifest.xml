@@ -39,7 +39,7 @@
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:usesCleartextTraffic="true"
-        android:enableOnBackInvokedCallback="false">
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name="org.materialfy.MaterialfyActivity"
             android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density"
