@@ -326,12 +326,25 @@ jobs:
           export ANDROID_SDK_ROOT="$ANDROID_HOME" ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/$NDK_VERSION"
           bash android/build_apk.sh --release
           mkdir -p target/dist
-          # name without "-debugsigned": the updater picks the asset by its "-arm64-v8a.apk" suffix
-          cp "$(ls target/android/Materialfy-*-arm64-v8a*.apk | head -1)" "target/dist/Materialfy-$VERSION-arm64-v8a.apk"
+          if [ -n "${ANDROID_KEYSTORE:-}" ]; then
+            # the updater picks the asset by its "-arm64-v8a.apk" suffix
+            cp target/android/Materialfy-*-arm64-v8a.apk "target/dist/Materialfy-$VERSION-arm64-v8a.apk"
+          else
+            # debug-signed: not for a release (it couldn't update an installed signed APK)
+            cp "$(ls target/android/Materialfy-*-arm64-v8a*.apk | head -1)" "target/dist/Materialfy-$VERSION-arm64-v8a-debugsigned.apk"
+          fi
 
+      # release.yml takes materialfy-* artifacts: only a release-signed APK goes there
       - uses: actions/upload-artifact@v7
+        if: env.ANDROID_KEYSTORE != ''
         with:
           name: materialfy-android-arm64
+          path: target/dist/*.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: env.ANDROID_KEYSTORE == ''
+        with:
+          name: android-arm64-debugsigned
           path: target/dist/*.apk
           if-no-files-found: error
 

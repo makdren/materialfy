@@ -48,5 +48,11 @@ jobs:
             dist/*.AppImage
             dist/*.tar.gz
             dist/*.dmg
-            dist/*.apk
             dist/SHA256SUMS.txt
+
+      # Android APK only when CI signed it with the release key (secrets ANDROID_KEYSTORE_BASE64/_PASS)
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          fail_on_unmatched_files: false
+          files: dist/*.apk
