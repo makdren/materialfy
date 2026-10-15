@@ -58,7 +58,9 @@ QtObject {
         "Without Premium you can sign in another way — through the Web API: you get your library, search and a remote for phones and speakers, but no music on this computer. Spotify sometimes limits these requests.":
             "Without Premium you can sign in another way — through the Web API: you get your library, search and a remote for other devices and speakers, but no music on this phone. Spotify sometimes limits these requests.",
         "Open Spotify on a phone or speaker and it will show up here. Or start playing music on this computer.":
-            "Open Spotify on a computer or speaker and it will show up here. Or start playing music on this phone."
+            "Open Spotify on a computer or speaker and it will show up here. Or start playing music on this phone.",
+        "The playing track’s cover, blurred behind the whole window as a soft colored glow":
+            "The playing track’s cover, blurred behind the whole screen as a soft colored glow"
     })
 
     function t(en) {

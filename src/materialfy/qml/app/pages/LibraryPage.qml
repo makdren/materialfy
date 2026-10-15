@@ -260,7 +260,7 @@ Item {
         Row {
             spacing: 8
             // телефон: поле — на всё свободное место шапки, сортировка и вид на это время прячутся
-            readonly property real fieldWidth: Theme.mobile ? Math.max(140, page.width - 140) : 240
+            readonly property real fieldWidth: Theme.mobile ? Math.max(140, page.width - 104) : 240
             Item {
                 width: page.searchOpen ? parent.fieldWidth : 0
                 height: 40

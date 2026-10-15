@@ -61,6 +61,10 @@ mod android {
             std::env::set_var("XDG_CONFIG_HOME", format!("{home}/config"));
             std::env::set_var("XDG_DATA_HOME", format!("{home}/data"));
             std::env::set_var("XDG_STATE_HOME", format!("{home}/state"));
+            // temp_dir() без TMPDIR на Android — /data/local/tmp, приложению туда не писать (обычно Qt его задаёт)
+            if std::env::var_os("TMPDIR").is_none() {
+                std::env::set_var("TMPDIR", &cache);
+            }
             std::env::set_var("XDG_CACHE_HOME", cache);
             // корневые сертификаты: rustls-native-certs (reqwest, librespot) ищет их в /etc/ssl и т. п., а на
             // Android они в своём каталоге — без него любой HTTPS падает, и вход висит на «Входим…».
