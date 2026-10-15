@@ -11,8 +11,8 @@
 [![Release](https://img.shields.io/github/v/release/makdren/materialfy?label=release)](https://github.com/makdren/materialfy/releases/latest)
 [![Build](https://github.com/makdren/materialfy/actions/workflows/build.yml/badge.svg)](https://github.com/makdren/materialfy/actions/workflows/build.yml)
 
-Клиент Spotify на Rust и Qt Quick, интерфейс в стиле Material 3 Expressive.<br>
-Android, Windows и Linux, macOS в экспериментальном режиме.
+Клиент Spotify для Android на Rust и Qt Quick, интерфейс в стиле Material 3 Expressive.<br>
+Порт настольного Materialfy под телефон.
 
 [Скачать](#скачать) ·
 [Android](#android) ·
@@ -41,26 +41,20 @@ Materialfy ставят вместо официального настольно
 > [!NOTE]
 > Это форк [fatyzzz/materialfy](https://github.com/fatyzzz/materialfy) с версией для Android: та же программа
 > с раскладкой для телефона, фоновым воспроизведением, плеером в «острове» системы и обновлением APK прямо из
-> приложения. Сборки для компьютера совпадают с оригиналом; изменения из него переносятся в этот форк.
+> приложения. Здесь выпускается только APK; версии для Windows, Linux и macOS — в
+> [релизах оригинала](https://github.com/fatyzzz/materialfy/releases).
 
 ## Скачать
 
-Готовые сборки всех версий лежат на [странице Releases](https://github.com/makdren/materialfy/releases).
-Файл для своей системы возьмите из [последнего релиза](https://github.com/makdren/materialfy/releases/latest):
+APK лежит в [последнем релизе](https://github.com/makdren/materialfy/releases/latest) (все версии — на [странице Releases](https://github.com/makdren/materialfy/releases)):
 
 | Система | Файл |
 | --- | --- |
-| Windows 10/11, x64 | `Materialfy-<версия>-Setup.exe` (инсталлер, права администратора не нужны) или `Materialfy-<версия>-windows-x64-portable.zip` |
-| Linux x86_64 | `Materialfy-<версия>-x86_64.AppImage` или `materialfy-<версия>-linux-x86_64.tar.gz` |
-| Linux aarch64 | `Materialfy-<версия>-aarch64.AppImage` или `materialfy-<версия>-linux-aarch64.tar.gz` |
-| macOS 13+, Apple silicon | `Materialfy-<версия>-macos-arm64.dmg` (экспериментально) |
-| macOS 13+, Intel | `Materialfy-<версия>-macos-x86_64.dmg` (экспериментально) |
-| Android 9+, arm64 | `Materialfy-<версия>-arm64-v8a.apk` (см. [Android](#android)) |
+| Android 9+, arm64 | `Materialfy-<версия>-arm64-v8a.apk` |
 
-Контрольные суммы лежат в том же релизе в `SHA256SUMS.txt`. С версии 0.2.1 программа сама проверяет Releases
-на новые версии («Настройки» → «Обновления»). Инсталлер, portable-папка и AppImage скачивают и ставят обновление
-на месте, на macOS открывается новый `.dmg`, а копия из `tar.gz` только даёт ссылку на страницу релиза. На Android
-новый APK скачивается, сверяется с контрольной суммой и передаётся системному установщику.
+Контрольная сумма лежит в том же релизе в `SHA256SUMS.txt`. Программа сама проверяет релизы на новые версии
+(«Настройки» → «Обновления»): новый APK скачивается, сверяется с контрольной суммой и передаётся системному
+установщику. Сборки для компьютера и их обновления — в [fatyzzz/materialfy](https://github.com/fatyzzz/materialfy/releases).
 
 ## Android
 
@@ -452,8 +446,8 @@ Spotify» в Discord ставит сама связка Spotify ↔ Discord: Mat
 `-arm64-v8a.apk` свежего релиза, сверяет его с `SHA256SUMS.txt` и отдаёт системному установщику. Android ставит
 обновление только поверх APK, подписанного тем же ключом, поэтому сборка в CI (`build.yml`, задача `android`)
 подписывает его ключом из секретов репозитория `ANDROID_KEYSTORE_BASE64` и `ANDROID_KEYSTORE_PASS` (псевдоним
-`materialfy` или переменная `ANDROID_KEY_ALIAS`). Тег `v*` публикует APK в том же релизе, что и сборки для
-компьютера.
+`materialfy` или переменная `ANDROID_KEY_ALIAS`). Тег `v*` публикует релиз с APK; без ключа релиз не
+создаётся.
 
 Без ключа APK подписан отладочным ключом SDK: он ставится как есть, но сборку с другим ключом поверх него не
 поставить. Для своего ключа задайте `ANDROID_KEYSTORE`, `ANDROID_KEY_ALIAS` и `ANDROID_KEYSTORE_PASS`. Часть для
@@ -485,9 +479,9 @@ Android — в [`android/`](android) (манифест, активность, с
 cargo test --locked --workspace
 ```
 
-[`build.yml`](.github/workflows/build.yml) запускается на pull request в `main` и вручную. Сборка Windows
-(тесты, инсталлер, portable-архив, проверочный снимок окна) обязательна. Linux и macOS собираются по возможности,
-их сбой не валит весь запуск.
+[`build.yml`](.github/workflows/build.yml) запускается на push и pull request в `main` и вручную. В этом форке
+он собирает только APK; задачи Windows, Linux и macOS пропускаются, пока переменная репозитория `DESKTOP_BUILDS`
+не равна `true`.
 
 ## Как устроено
 

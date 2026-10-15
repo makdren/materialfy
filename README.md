@@ -13,8 +13,8 @@
 [![Release](https://img.shields.io/github/v/release/makdren/materialfy?label=release)](https://github.com/makdren/materialfy/releases/latest)
 [![Build](https://github.com/makdren/materialfy/actions/workflows/build.yml/badge.svg)](https://github.com/makdren/materialfy/actions/workflows/build.yml)
 
-Spotify client built with Rust and Qt Quick, with a Material 3 Expressive interface.<br>
-Android, Windows and Linux; macOS is experimental.
+Spotify client for Android built with Rust and Qt Quick, with a Material 3 Expressive interface.<br>
+A phone port of the Materialfy desktop app.
 
 [Download](#download) ·
 [Android](#android) ·
@@ -43,26 +43,20 @@ The project is assembled from two MIT-licensed projects: the Spotify side comes 
 > [!NOTE]
 > This is a fork of [fatyzzz/materialfy](https://github.com/fatyzzz/materialfy) with an Android version: the same
 > app with a phone layout, background playback, the player in the system "island" and APK updates from inside
-> the app. Desktop builds match upstream; upstream changes are merged into this fork.
+> the app. Only the APK is released here; Windows, Linux and macOS builds are in the
+> [upstream releases](https://github.com/fatyzzz/materialfy/releases).
 
 ## Download
 
-Ready builds of every version are on the [Releases page](https://github.com/makdren/materialfy/releases).
-Take the file for your system from the [latest release](https://github.com/makdren/materialfy/releases/latest):
+The APK is in the [latest release](https://github.com/makdren/materialfy/releases/latest) (every version is on the [Releases page](https://github.com/makdren/materialfy/releases)):
 
 | System | File |
 | --- | --- |
-| Windows 10/11, x64 | `Materialfy-<version>-Setup.exe` (installer, no admin rights needed) or `Materialfy-<version>-windows-x64-portable.zip` |
-| Linux x86_64 | `Materialfy-<version>-x86_64.AppImage` or `materialfy-<version>-linux-x86_64.tar.gz` |
-| Linux aarch64 | `Materialfy-<version>-aarch64.AppImage` or `materialfy-<version>-linux-aarch64.tar.gz` |
-| macOS 13+, Apple silicon | `Materialfy-<version>-macos-arm64.dmg` (experimental) |
-| macOS 13+, Intel | `Materialfy-<version>-macos-x86_64.dmg` (experimental) |
-| Android 9+, arm64 | `Materialfy-<version>-arm64-v8a.apk` (see [Android](#android)) |
+| Android 9+, arm64 | `Materialfy-<version>-arm64-v8a.apk` |
 
-`SHA256SUMS.txt` in the same release lists the checksums. Starting with 0.2.1 the app checks Releases for new
-versions on its own (Settings → Updates). The installer, the portable folder and the AppImage download and
-apply an update in place; on macOS the new `.dmg` opens; a copy from `tar.gz` only links to the release page. On
-Android the new APK is downloaded, checked against the checksum and handed to the system installer.
+`SHA256SUMS.txt` in the same release lists the checksum. The app checks the releases for new versions on its own
+(Settings → Updates): the new APK is downloaded, checked against the checksum and handed to the system installer.
+Desktop builds and their updates are in [fatyzzz/materialfy](https://github.com/fatyzzz/materialfy/releases).
 
 ## Android
 
@@ -456,8 +450,8 @@ Updates come from this fork's GitHub Releases (`makdren/materialfy`): Settings �
 `-arm64-v8a.apk` of the newest release, checks it against `SHA256SUMS.txt` and hands it to the system installer.
 Android installs an update only over an APK signed with the same key, so the release build in CI
 (`build.yml`, job `android`) signs with the `ANDROID_KEYSTORE_BASE64` and `ANDROID_KEYSTORE_PASS` repository
-secrets (key alias `materialfy`, or the `ANDROID_KEY_ALIAS` variable). A `v*` tag publishes the APK in the same
-release as the desktop builds.
+secrets (key alias `materialfy`, or the `ANDROID_KEY_ALIAS` variable). A `v*` tag publishes a release with the APK;
+without the key no release is created.
 
 Without a keystore the APK is signed with the SDK debug key: it installs as is, but a build signed with a
 different key cannot be installed over it. For a release key set `ANDROID_KEYSTORE`, `ANDROID_KEY_ALIAS` and
@@ -489,9 +483,9 @@ player session file, `RUST_LOG` controls logging (for example `RUST_LOG=material
 cargo test --locked --workspace
 ```
 
-[`build.yml`](.github/workflows/build.yml) runs on pull requests to `main` and manually. The Windows build (tests,
-installer, portable archive, a check screenshot of the window) is required. Linux and macOS are built on a
-best-effort basis; their failure does not fail the whole run.
+[`build.yml`](.github/workflows/build.yml) runs on pushes and pull requests to `main` and manually. In this fork it
+builds only the APK; the Windows, Linux and macOS jobs are skipped unless the repository variable `DESKTOP_BUILDS`
+is `true`.
 
 ## How it works
 

@@ -1,6 +1,8 @@
 # Builds, tests and packages Materialfy on every supported platform.
 # Runs on pushes to main, on pull requests, manually (Actions -> Build -> Run workflow) and is called
 # by release.yml (workflow_call) for tagged releases. Every platform job is required.
+# This fork ships only the Android APK: the desktop jobs (Windows, Linux, macOS) are skipped unless the
+# repository variable DESKTOP_BUILDS is 'true'.
 name: Build
 
 on:
@@ -68,6 +70,7 @@ jobs:
   windows:
     name: Windows x86_64
     needs: meta
+    if: vars.DESKTOP_BUILDS == 'true'
     # Own runner for pushes and tags; pull requests (possibly from forks) never reach it.
     # Set the repository variable USE_SELF_HOSTED=false to build in the cloud while that machine is off.
     runs-on: ${{ (github.event_name != 'pull_request' && vars.USE_SELF_HOSTED != 'false' && (github.repository == 'fatyzzz/materialfy' || vars.USE_SELF_HOSTED == 'true')) && fromJSON('["self-hosted","Windows","materialfy"]') || 'windows-latest' }}
@@ -142,6 +145,7 @@ jobs:
   linux:
     name: Linux ${{ matrix.arch }}
     needs: meta
+    if: vars.DESKTOP_BUILDS == 'true'
     runs-on: ${{ matrix.runner }}
     # x86_64 is built inside Ubuntu 22.04, the oldest LTS still in standard support: the binary and the system
     # libraries linuxdeploy bundles then need glibc 2.35 and GCC 11's libstdc++, so the AppImage runs on any
@@ -353,6 +357,7 @@ jobs:
     # universal). The two dmg names stay per architecture because the in-app updater picks them by name.
     name: macOS arm64 + x86_64
     needs: meta
+    if: vars.DESKTOP_BUILDS == 'true'
     runs-on: macos-latest
     timeout-minutes: 150
     env:
