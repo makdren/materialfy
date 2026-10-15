@@ -50,8 +50,26 @@ QtObject {
     function t(en) {
         const d = _dictOf(Translations.language)
         const s = d ? d[en] : undefined
-        const pattern = typeof s === "string" ? s : en
+        const pattern = phone(typeof s === "string" ? s : en)
         return arguments.length > 1 ? format(pattern, Array.prototype.slice.call(arguments, 1)) : pattern
+    }
+
+    // Phone layout (Theme.mobile): the interface speaks of "this phone", not "this computer". The nouns decline
+    // alike (компьютер-а/-е/-ом → телефон-а/-е/-ом; computador(es) → celular(es)), so one replacement per stem
+    // covers every dictionary entry. mf_i18n::set_phone does the same for strings coming from Rust.
+    function phone(text) {
+        if (!Theme.mobile || typeof text !== "string" || text.length === 0)
+            return text
+        switch (Translations.language) {
+        case "ru":
+            return text.replace(/компьютер/g, "телефон").replace(/Компьютер/g, "Телефон")
+        case "pt":
+            return text.replace(/computadores/g, "celulares").replace(/computador/g, "celular")
+                       .replace(/Computadores/g, "Celulares").replace(/Computador/g, "Celular")
+        default:
+            return text.replace(/\bcomputers\b/g, "phones").replace(/\bcomputer\b/g, "phone")
+                       .replace(/\bComputer\b/g, "Phone")
+        }
     }
 
     // Any language → English for plain (non-plural) entries, built once from every dictionary.

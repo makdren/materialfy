@@ -207,8 +207,8 @@ Item {
         visible: root.count > 0
         clip: true
         model: root.queue
-        boundsBehavior: Flickable.StopAtBounds
-        acceptedButtons: Qt.NoButton
+        boundsBehavior: Theme.mobile ? Flickable.OvershootBounds : Flickable.StopAtBounds
+        acceptedButtons: Theme.mobile ? Qt.LeftButton : Qt.NoButton
         cacheBuffer: 400
         // без reuseItems: замер на живой очереди показал регрессию — при частых диффах плеера
         // переклейка данных на переиспользуемые делегаты дороже обновления биндингов на месте

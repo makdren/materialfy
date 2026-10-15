@@ -61,7 +61,7 @@ T.Popup {
             property real drag: 0
             anchors.horizontalCenter: parent.horizontalCenter
             width: Math.min(parent.width, 640)
-            height: Math.min(handleBox.height + flick.contentHeight + 16, parent.height * 0.85)
+            height: Math.min(handleBox.height + flick.contentHeight + 16 + Theme.safeBottom, parent.height * 0.85)
             y: parent.height - height * (root._instant ? 1 : root.reveal) + drag + (root._instant ? 0 : (1 - root.reveal) * 40)
             opacity: root._instant ? root.reveal : Math.min(1, root.reveal * 2)
             topLeftRadius: Theme.shape.extraLarge
@@ -112,7 +112,7 @@ T.Popup {
                 anchors.bottom: parent.bottom
                 anchors.leftMargin: 12
                 anchors.rightMargin: 12
-                anchors.bottomMargin: 16
+                anchors.bottomMargin: 16 + Theme.safeBottom
                 clip: true
                 contentWidth: width
                 contentHeight: body.implicitHeight

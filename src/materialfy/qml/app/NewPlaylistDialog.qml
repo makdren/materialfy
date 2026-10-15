@@ -48,6 +48,8 @@ Item {
     Rectangle {
         id: card
         anchors.centerIn: parent
+        // телефон: открытая клавиатура закрывает низ экрана — карточка поднимается над ней
+        anchors.verticalCenterOffset: Theme.mobile && Qt.inputMethod.visible ? -Qt.inputMethod.keyboardRectangle.height / 2 : 0
         width: Math.min(400, parent.width - 48)
         implicitHeight: content.implicitHeight + 48
         height: implicitHeight

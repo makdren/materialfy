@@ -14,7 +14,7 @@ Item {
     id: root
 
     property var items: []
-    readonly property bool opened: mainPopup.visible
+    readonly property bool opened: mainPopup.visible || (sheet.item !== null && sheet.item.opened)
 
     signal picked(int index)
     signal triggered(string id, var item)
@@ -26,6 +26,13 @@ Item {
     // под кнопкой, правым краем к её правому краю, а не влезает вниз — над ней. Без size меню открывается
     // от точки (курсор при ПКМ) вправо-вниз и отражается влево/вверх у края.
     function open(list, point, size) {
+        // телефон: нижний лист вместо карточки у точки
+        if (Theme.mobile) {
+            items = list
+            sheet.active = true
+            sheet.item.open(list)
+            return
+        }
         closeSub()
         items = list
         main.currentIndex = -1
@@ -39,6 +46,31 @@ Item {
     function close() {
         closeSub()
         mainPopup.close()
+        if (sheet.item)
+            sheet.item.close()
+    }
+    // «назад» системы (телефон): подменю листа → родитель, иначе закрыть; false — меню не открыто
+    function back() {
+        if (sheet.item && sheet.item.opened)
+            return sheet.item.back()
+        if (mainPopup.visible) {
+            close()
+            return true
+        }
+        return false
+    }
+
+    // Лист — поверх всего окна, а не внутри владельца меню (поле выбора, строка)
+    Loader {
+        id: sheet
+        active: false
+        parent: root.Window.window ? root.Window.window.contentItem : root
+        anchors.fill: parent
+        z: 3000
+        sourceComponent: SheetMenu {
+            onPicked: index => root.picked(index)
+            onTriggered: (id, item) => root.triggered(id, item)
+        }
     }
     function closeSub() {
         hoverTimer.stop()

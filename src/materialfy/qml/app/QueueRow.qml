@@ -13,7 +13,8 @@ Item {
     property bool draggable: false
     property bool dragging: false
     property bool compact: false
-    readonly property bool hovered: rowHover.hovered
+    // на телефоне ручка и «⋯» видны всегда: наведения нет
+    readonly property bool hovered: rowHover.hovered || Theme.mobile
 
     signal activated()
     signal dragStarted()
@@ -54,6 +55,12 @@ Item {
         radius: Theme.shape.large
         dragged: root.dragging
         onClicked: root.activated()
+        onPressAndHold: mouse => {
+            if (Theme.mobile)
+                root.openMenu(root, mouse.x, mouse.y)
+            else
+                mouse.accepted = false
+        }
     }
 
     RowLayout {

@@ -381,6 +381,33 @@ cargo build --locked --release -p materialfy
 bash .github/scripts/package_macos.sh 0.1.0   # target/dist/Materialfy.app и .dmg
 ```
 
+### Android (экспериментально)
+
+Те же ядро на Rust и QML работают на Android (arm64-v8a, Android 9+) с раскладкой для телефона: нижняя навигация,
+мини-плеер над ней и полноэкранный плеер, меню нижними листами, касания вместо наведения. Музыка играет в фоне
+через уведомление плеера (экран блокировки, кнопки гарнитуры, аудиофокус). Вход — как на компьютере: открывается
+браузер, Spotify возвращает его на `127.0.0.1`. Токены хранятся файлами в закрытом каталоге приложения (связки
+ключей для нативного кода в Android нет), резервное копирование приложения выключено.
+
+Нужны Rust с целью `aarch64-linux-android`, JDK 17+, Android SDK (platform 36, build-tools 36) с NDK r28 и две
+установки Qt 6.12: для Android и для хоста (его инструменты собирают пакет).
+
+```bash
+rustup target add aarch64-linux-android
+python3 .github/scripts/install_qt.py --host android --out ~/Qt/6.12.0/android_arm64_v8a
+python3 .github/scripts/install_qt.py --out ~/Qt/6.12.0/gcc_64
+export QT_ANDROID=~/Qt/6.12.0/android_arm64_v8a QT_HOST=~/Qt/6.12.0/gcc_64
+export ANDROID_SDK_ROOT=~/Android/Sdk ANDROID_NDK_ROOT=~/Android/Sdk/ndk/28.2.13676358
+android/build_apk.sh --release   # target/android/Materialfy-<версия>-arm64-v8a-debugsigned.apk
+```
+
+Без ключа APK подписан отладочным ключом SDK: он ставится как есть, но сборку с другим ключом поверх него не
+поставить. Для своего ключа задайте `ANDROID_KEYSTORE`, `ANDROID_KEY_ALIAS` и `ANDROID_KEYSTORE_PASS`. Часть для
+Android — в [`android/`](android) (манифест, активность, сервисы воспроизведения и входа) и
+[`crates/materialfy/cpp/mobile.cpp`](crates/materialfy/cpp/mobile.cpp); раскладка телефона —
+[`MobileMain.qml`](src/materialfy/qml/MobileMain.qml). На компьютере ключ `--mobile` открывает её же в окне,
+например `--mobile --size 412x915`.
+
 ### Ключи запуска и переменные
 
 | Ключ | Что делает |
@@ -393,6 +420,7 @@ bash .github/scripts/package_macos.sh 0.1.0   # target/dist/Materialfy.app и .d
 | `--config-dir DIR` | отдельный каталог настроек |
 | `--set ключ=значение` | начальное свойство окна, например `--set startPage=settings` |
 | `--gallery` | галерея компонентов Material 3 |
+| `--mobile` | раскладка телефона (как на Android) |
 
 Переменные окружения: `MATERIALFY_QML_DIR` задаёт свой каталог QML, `MATERIALFY_SESSION_FILE` задаёт файл
 сессии плеера, `RUST_LOG` управляет журналом (например, `RUST_LOG=materialfy=debug,sf_player=debug`).

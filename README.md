@@ -384,6 +384,33 @@ cargo build --locked --release -p materialfy
 bash .github/scripts/package_macos.sh 0.1.0   # target/dist/Materialfy.app and .dmg
 ```
 
+### Android (experimental)
+
+The same Rust core and QML run on Android (arm64-v8a, Android 9+) with a phone layout: bottom navigation,
+a mini player above it and a full-screen player, menus as bottom sheets, touch instead of hover. Playback keeps
+going in the background through a media notification (lock screen, headset buttons, audio focus). Sign-in works
+the same way: the browser opens and Spotify sends it back to `127.0.0.1`. Tokens are stored as files in the app's
+private directory (Android has no keyring for native code); backups of the app are turned off.
+
+You need Rust with the `aarch64-linux-android` target, JDK 17+, the Android SDK (platform 36, build-tools 36) with
+NDK r28, and two Qt 6.12 installs: for Android and for the host (its tools build the package).
+
+```bash
+rustup target add aarch64-linux-android
+python3 .github/scripts/install_qt.py --host android --out ~/Qt/6.12.0/android_arm64_v8a
+python3 .github/scripts/install_qt.py --out ~/Qt/6.12.0/gcc_64
+export QT_ANDROID=~/Qt/6.12.0/android_arm64_v8a QT_HOST=~/Qt/6.12.0/gcc_64
+export ANDROID_SDK_ROOT=~/Android/Sdk ANDROID_NDK_ROOT=~/Android/Sdk/ndk/28.2.13676358
+android/build_apk.sh --release   # target/android/Materialfy-<version>-arm64-v8a-debugsigned.apk
+```
+
+Without a keystore the APK is signed with the SDK debug key: it installs as is, but a build signed with a
+different key cannot be installed over it. For a release key set `ANDROID_KEYSTORE`, `ANDROID_KEY_ALIAS` and
+`ANDROID_KEYSTORE_PASS`. The Android part lives in [`android/`](android) (manifest, activity, playback and sign-in
+services) and [`crates/materialfy/cpp/mobile.cpp`](crates/materialfy/cpp/mobile.cpp); the phone layout is
+[`MobileMain.qml`](src/materialfy/qml/MobileMain.qml). On a desktop `--mobile` opens the same layout in a window,
+for example `--mobile --size 412x915`.
+
 ### Command-line flags and variables
 
 | Flag | What it does |
@@ -396,6 +423,7 @@ bash .github/scripts/package_macos.sh 0.1.0   # target/dist/Materialfy.app and .
 | `--config-dir DIR` | separate settings directory |
 | `--set key=value` | initial window property, for example `--set startPage=settings` |
 | `--gallery` | Material 3 component gallery |
+| `--mobile` | phone layout (as on Android) |
 
 Environment variables: `MATERIALFY_QML_DIR` sets a custom QML directory, `MATERIALFY_SESSION_FILE` sets the
 player session file, `RUST_LOG` controls logging (for example `RUST_LOG=materialfy=debug,sf_player=debug`).

@@ -199,7 +199,7 @@ Page {
                 Row {
                     id: skelRow
                     spacing: 24
-                    Repeater { model: 6; SkeletonTile { size: 168 } }
+                    Repeater { model: 6; SkeletonTile { size: Theme.mobile ? 144 : 168 } }
                 }
             }
         }
@@ -275,8 +275,8 @@ Page {
             }
             GridLayout {
                 Layout.fillWidth: true
-                Layout.leftMargin: -12
-                Layout.rightMargin: -12
+                Layout.leftMargin: Theme.mobile ? -8 : -12
+                Layout.rightMargin: Theme.mobile ? -8 : -12
                 columns: page.compact ? 1 : 2
                 columnSpacing: 16
                 rowSpacing: 0
@@ -330,11 +330,12 @@ Page {
                     Layout.fillWidth: true
                     Layout.maximumWidth: Math.ceil(implicitWidth)
                     text: rowCol.shelfData.title ?? ""
-                    type: "headlineSmall"
+                    type: Theme.mobile ? "titleLarge" : "headlineSmall"
                     weight: 600
                 }
                 Icon {
-                    visible: rowCol.shelfData.key === "madeForYou"
+                    // подсказка по наведению — на телефоне её не открыть
+                    visible: rowCol.shelfData.key === "madeForYou" && !Theme.mobile
                     name: "info"
                     size: 20
                     color: Theme.fgSurfaceVariant
@@ -371,7 +372,10 @@ Page {
                 // зависит `strip.width`, и условие «контент шире полки» начинало мигать — ColumnLayout
                 // переполировывался бесконечно (в раскладке полки «possible polish() loop», карточки
                 // наезжали друг на друга). Место под стрелки занято всегда, а невидимые выключены.
+                // телефон: полку листают пальцем — стрелок нет (место под них тоже не нужно: условие не мигает,
+                // Theme.mobile постоянен)
                 IconButton {
+                    visible: !Theme.mobile
                     icon: "chevron_left"
                     size: "xs"
                     enabled: rowCol.scrollable && !strip.atXBeginning
@@ -379,6 +383,7 @@ Page {
                     onClicked: strip.pageBy(-1)
                 }
                 IconButton {
+                    visible: !Theme.mobile
                     icon: "chevron_right"
                     size: "xs"
                     enabled: rowCol.scrollable && !strip.atXEnd
@@ -389,14 +394,19 @@ Page {
             ListView {
                 id: strip
                 Layout.fillWidth: true
-                Layout.leftMargin: -32
-                Layout.rightMargin: -32
-                Layout.preferredHeight: rowCol.kind === "episodes" ? 104 : rowCol.kind === "artists" ? 200 : 220
+                Layout.leftMargin: -page.sideMargin
+                Layout.rightMargin: -page.sideMargin
+                Layout.preferredHeight: rowCol.kind === "episodes" ? 104
+                                      : rowCol.kind === "artists" ? (Theme.mobile ? 168 : 200)
+                                      : (Theme.mobile ? 196 : 220)
                 orientation: ListView.Horizontal
-                spacing: 24
-                leftMargin: 32
-                rightMargin: 32
-                interactive: false
+                spacing: Theme.mobile ? 14 : 24
+                leftMargin: page.sideMargin
+                rightMargin: page.sideMargin
+                // десктоп листает стрелками и Shift+колесом; телефон — свайпом
+                interactive: Theme.mobile
+                boundsBehavior: Flickable.StopAtBounds
+                flickableDirection: Flickable.HorizontalFlick
                 clip: true
                 // плитки за краем не создаются, ушедшие за край переиспользуются
                 reuseItems: true
@@ -434,7 +444,7 @@ Page {
                     id: mediaTile
                     MediaTile {
                         readonly property var e: parent ? parent.modelData : ({})
-                        size: 168
+                        size: Theme.mobile ? 144 : 168
                         cover: e.cover ?? ""
                         coverKind: e.kind === "album" || e.kind === "artist" ? e.kind : ""
                         coverArtist: e.kind === "artist" ? (e.title ?? "") : (e.subtitle ?? "").split(", ")[0]
@@ -456,7 +466,7 @@ Page {
                     id: artistTile
                     MediaTile {
                         readonly property var a: parent ? parent.modelData : ({})
-                        size: 148
+                        size: Theme.mobile ? 120 : 148
                         round: true
                         cover: a.cover ?? ""
                         coverKind: "artist"

@@ -12,8 +12,9 @@ Item {
     property string title
     property string subtitle
     property bool showHeader: true
-    property real sideMargin: 32
-    property real bottomInset: 120
+    property real sideMargin: Theme.mobile ? 16 : 32
+    // под плавающим мини-плеером (на телефоне он ниже и уже)
+    property real bottomInset: Theme.mobile ? 96 : 120
     default property alias content: column.data
     // Слой под содержимым, вне прокручиваемой области — её clip его не режет (фон шапки, см. HeroShapes)
     property alias underlay: underlayHost.data
@@ -33,7 +34,7 @@ Item {
             x: page.sideMargin
             y: 8
             width: flick.width - 2 * page.sideMargin
-            spacing: 24
+            spacing: Theme.mobile ? 20 : 24
 
             ColumnLayout {
                 visible: page.showHeader
@@ -42,7 +43,7 @@ Item {
                 Label {
                     Layout.fillWidth: true
                     text: page.title
-                    type: "displaySmall"
+                    type: Theme.mobile ? "headlineMedium" : "displaySmall"
                     weight: 600
                 }
                 Label {

@@ -2570,6 +2570,7 @@ dependencies = [
  "mf-lyrics",
  "mf-platform",
  "mf-theme",
+ "ndk-context",
  "serde",
  "serde_json",
  "sf-api",

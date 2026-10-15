@@ -82,6 +82,22 @@ TrackListPage {
     addedColumn: collaborative ? "by" : (model && model.count > 0 && (model.get(0).addedAt ?? "") !== "" ? "at" : "")
     contentRightInset: editing && panelOpen && !compactPanel ? addPanel.panelWidth + 8 : 0
     onEditingChanged: if (!editing) panelOpen = false
+    // «Назад» системы (телефон): панель добавления → правка → поиск по списку
+    function handleBack() {
+        if (panelOpen) {
+            panelOpen = false
+            return true
+        }
+        if (editing) {
+            editing = false
+            return true
+        }
+        if (searchOpen) {
+            closeSearch()
+            return true
+        }
+        return false
+    }
     onCanEditChanged: if (!canEdit) editing = false
 
     function notify(text, actionText, onAction) {
@@ -368,8 +384,10 @@ TrackListPage {
 
     AddTracksPanel {
         id: addPanel
+        // телефон: лист поверх всего окна (над мини-плеером и нижней навигацией)
+        parent: Theme.mobile && page.Window.window ? page.Window.window.contentItem : page
         anchors.fill: parent
-        z: 20
+        z: Theme.mobile ? 1500 : 20
         playlistId: page.playlistId
         playlistTitle: page.title
         playlistModel: page.model

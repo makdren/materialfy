@@ -85,8 +85,16 @@ Item {
         _animate(prev, entry.item, "forward")
     }
 
+    // Страницы, которые на телефоне не разделы нижней навигации («Аккаунт», «Любимые» …): reset к ним
+    // открывает их поверх текущего раздела — «назад» возвращает туда, откуда пришли
+    property var pushOnReset: []
+
     // Переход в раздел верхнего уровня: стек сбрасывается.
     function reset(name, props) {
+        if (depth > 0 && pushOnReset.indexOf(name) >= 0) {
+            push(name, props)
+            return
+        }
         if (_pendingSame(name, props) || (depth === 1 && _same(current, name, props)))
             return
         if (_pending)

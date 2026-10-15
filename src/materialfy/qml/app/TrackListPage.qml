@@ -112,6 +112,13 @@ Item {
         searchOpen = false
         searchText = ""
     }
+    // «Назад» системы (телефон): сначала закрыть поиск по списку; true — обработано здесь
+    function handleBack() {
+        if (!searchOpen)
+            return false
+        closeSearch()
+        return true
+    }
 
     TrackFilter {
         id: filter
@@ -139,7 +146,8 @@ Item {
 
     HeroShapes {
         width: page.width - page.contentRightInset
-        active: page.showHeader && page.visible && Theme.reducedMotion !== true
+        // телефон: на узком экране фигуры за крупной обложкой — серое пятно, а не фон
+        active: page.showHeader && page.visible && Theme.reducedMotion !== true && !Theme.mobile
         running: page._settled
         headerHeight: list.headerItem ? list.headerItem.height : 320
         scroll: list.contentY - list.originY
@@ -151,12 +159,12 @@ Item {
     ReorderListView {
         id: list
         anchors.fill: parent
-        anchors.leftMargin: 16
-        anchors.rightMargin: 16 + page.contentRightInset
+        anchors.leftMargin: Theme.mobile ? 8 : 16
+        anchors.rightMargin: (Theme.mobile ? 8 : 16) + page.contentRightInset
         model: page.shownModel
         clip: true
-        boundsBehavior: Flickable.StopAtBounds
-        acceptedButtons: Qt.NoButton
+        boundsBehavior: Theme.mobile ? Flickable.OvershootBounds : Flickable.StopAtBounds
+        acceptedButtons: Theme.mobile ? Qt.LeftButton : Qt.NoButton
         reuseItems: true
         cacheBuffer: 640
         reorderable: page.editing && !filter.active
@@ -195,9 +203,9 @@ Item {
             Loader {
                 id: heroLoader
                 visible: page.showHeader
-                x: 16
+                x: Theme.mobile ? 8 : 16
                 y: 24     // запас сверху: фигура за обложкой больше неё и не должна упираться в край списка
-                width: parent.width - 32
+                width: parent.width - 2 * x
                 sourceComponent: page.editing && page.editHero ? page.editHero : defaultHero
             }
         }
@@ -260,7 +268,7 @@ Item {
         footer: Item {
             id: footerBox
             width: list.width
-            height: 120 + (page.model && page.model.loading && page.model.count > 0 ? 64 : 0) + extraLoader.height
+            height: (Theme.mobile ? 96 : 120) + (page.model && page.model.loading && page.model.count > 0 ? 64 : 0) + extraLoader.height
             Loader {
                 id: extraLoader
                 width: parent.width
@@ -294,18 +302,24 @@ Item {
 
     Component {
         id: defaultHero
-        RowLayout {
+        // Телефон: обложка крупно по центру, под ней подписи и кнопки; десктоп — обложка слева от подписей
+        GridLayout {
             id: hero
             readonly property alias searchField: searchField
-            spacing: page.width < 560 ? 18 : 28
-            Behavior on spacing { NumberAnimation { duration: Theme.motion.spatialDefault; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasized } }
+            columns: Theme.mobile ? 1 : 2
+            rowSpacing: 20
+            columnSpacing: page.width < 560 ? 18 : 28
+            Behavior on columnSpacing { NumberAnimation { duration: Theme.motion.spatialDefault; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasized } }
 
             // Обложка или фигура с иконкой; за обложкой — фигура побольше
             Item {
-                Layout.preferredWidth: page.width > 760 ? 184 : page.width < 560 ? 96 : 128
+                Layout.preferredWidth: Theme.mobile ? Math.round(Math.min(232, page.width * 0.56))
+                                     : page.width > 760 ? 184 : page.width < 560 ? 96 : 128
                 Layout.preferredHeight: Layout.preferredWidth
                 Behavior on Layout.preferredWidth { NumberAnimation { duration: Theme.motion.spatialDefault; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasized } }
-                Layout.alignment: Qt.AlignTop
+                Layout.alignment: Theme.mobile ? Qt.AlignHCenter : Qt.AlignTop
+                // фигура за обложкой на 30 % больше — ей нужно место сверху
+                Layout.topMargin: Theme.mobile ? 20 : 0
                 MorphShape {
                     id: coverBackdrop
                     visible: page.heroImage !== ""
@@ -344,7 +358,8 @@ Item {
 
             ColumnLayout {
                 Layout.fillWidth: true
-                Layout.alignment: Qt.AlignBottom
+                Layout.alignment: Theme.mobile ? Qt.AlignTop : Qt.AlignBottom
+                Layout.topMargin: Theme.mobile ? 8 : 0
                 spacing: 4
                 Label {
                     visible: page.overline !== ""
@@ -404,14 +419,14 @@ Item {
                 // в узком окне кнопки переносятся, а не распирают шапку
                 Flow {
                     Layout.fillWidth: true
-                    Layout.topMargin: 14
-                    spacing: 12
+                    Layout.topMargin: Theme.mobile ? 10 : 14
+                    spacing: Theme.mobile ? 8 : 12
                     visible: page.model !== null && (page.model.count > 0 || page.headerExtra !== null)
                     Button {
                         visible: page.showPlayButtons
                         text: I18n.t("Play")
                         icon: "play_arrow"
-                        size: "m"
+                        size: Theme.mobile ? "s" : "m"
                         enabled: page.shownModel !== null && page.shownModel.count > 0
                         onClicked: Player.playFrom(page.shownModel, 0)
                     }
@@ -420,7 +435,7 @@ Item {
                         text: I18n.t("Shuffle play")
                         icon: "shuffle"
                         style: "tonal"
-                        size: "m"
+                        size: Theme.mobile ? "s" : "m"
                         enabled: page.shownModel !== null && page.shownModel.count > 0
                         onClicked: Player.shuffleFrom(page.shownModel)
                     }
@@ -431,7 +446,7 @@ Item {
                     IconButton {
                         visible: page.model !== null && page.model.count > 0
                         icon: "search"
-                        size: "m"
+                        size: Theme.mobile ? "s" : "m"
                         style: page.searchOpen ? "tonal" : "standard"
                         checkable: true
                         autoToggle: false
@@ -484,7 +499,7 @@ Item {
         anchors.horizontalCenterOffset: -page.contentRightInset / 2
         y: Math.max((list.headerItem ? list.headerItem.height - (list.contentY - list.originY) : 0) + 8,
                     (parent.height - implicitHeight) / 2)
-        width: Math.min(parent.width - 64 - page.contentRightInset, 420)
+        width: Math.min(parent.width - (Theme.mobile ? 32 : 64) - page.contentRightInset, 420)
         visible: page.model !== null && !page.model.loading && page.model.count === 0 && page.footerExtra === null
         icon: page.emptyIcon
         title: page.emptyTitle

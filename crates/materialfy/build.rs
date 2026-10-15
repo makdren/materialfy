@@ -35,7 +35,7 @@ fn main() {
 
     // winframe.cpp, taskbar.cpp и floating.cpp собираются везде (вне Windows — заглушка), чтобы привязки
     // в qt/ffi.rs и winframe.rs не зависели от ОС
-    let cpp = ["cpp/mf_shell.cpp", "cpp/register.cpp", "cpp/taskbar.cpp", "cpp/winframe.cpp", "cpp/floating.cpp"];
+    let cpp = ["cpp/mf_shell.cpp", "cpp/register.cpp", "cpp/taskbar.cpp", "cpp/winframe.cpp", "cpp/floating.cpp", "cpp/mobile.cpp"];
 
     // Без QmlModule: он требует, чтобы все мосты лежали в одном каталоге (QTBUG-93443);
     // типы Materialfy.Core регистрирует cpp/register.cpp.
@@ -47,7 +47,9 @@ fn main() {
         .qt_module("Widgets")
         .include_dir("cpp")
         .files(bridges)
-        .cpp_files(cpp);
+        .cpp_files(cpp)
+        // QObject MobileShell — через moc
+        .cpp_file("cpp/mobile.h");
     let builder = unsafe {
         builder.cc_builder(|cc| {
             cc.include("cpp");
@@ -109,6 +111,13 @@ END
         }
         // dlsym (display.rs: QWindowSystemInterface::handlePrimaryScreenChanged)
         Ok("linux") => println!("cargo::rustc-link-lib=dl"),
+        // Android: библиотека, которую грузит QtActivity (main ищется через dlsym), — общий объект, а не исполняемый
+        Ok("android") => {
+            println!("cargo::rustc-link-lib=dl");
+            println!("cargo::rustc-link-lib=log");
+            println!("cargo::rustc-link-arg-bins=-shared");
+            println!("cargo::rustc-link-arg-bins=-Wl,-soname,libmaterialfy_arm64-v8a.so");
+        }
         _ => {}
     }
 }

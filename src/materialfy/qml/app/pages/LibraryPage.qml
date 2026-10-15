@@ -105,12 +105,15 @@ Item {
     // ---- Сетка: ячейка от 168, зазор 28 × 22, ряды по cols ----
     // Остаток ширины делится между плитками (они растут), а не уходит в зазоры: иначе при 2–3 колонках
     // между плитками зияли бы промежутки по 100+ px
-    readonly property real minCell: 168
-    readonly property real gapY: 28
-    readonly property real innerWidth: list.width - 64
-    readonly property int cols: Math.max(2, Math.floor((innerWidth + 22) / (minCell + 22)))
-    readonly property real cell: Math.max(minCell, Math.floor((innerWidth - (cols - 1) * 22) / cols))
-    readonly property real gapX: cols > 1 ? Math.max(22, (innerWidth - cols * cell) / (cols - 1)) : 0
+    // телефон: поля 16, ячейка от 136 и зазор 16 — две колонки помещаются и на 360 px
+    readonly property real margin: Theme.mobile ? 16 : 32
+    readonly property real minGap: Theme.mobile ? 16 : 22
+    readonly property real minCell: Theme.mobile ? 136 : 168
+    readonly property real gapY: Theme.mobile ? 20 : 28
+    readonly property real innerWidth: list.width - 2 * margin
+    readonly property int cols: Math.max(2, Math.floor((innerWidth + minGap) / (minCell + minGap)))
+    readonly property real cell: Math.max(Theme.mobile ? 0 : minCell, Math.floor((innerWidth - (cols - 1) * minGap) / cols))
+    readonly property real gapX: cols > 1 ? Math.max(minGap, (innerWidth - cols * cell) / (cols - 1)) : 0
     readonly property var rows: {
         const out = []
         let row = []
@@ -334,8 +337,8 @@ Item {
         anchors.fill: parent
         model: !page.signedIn ? [] : page.grid ? page.rows : page.listEntries
         clip: true
-        boundsBehavior: Flickable.StopAtBounds
-        acceptedButtons: Qt.NoButton
+        boundsBehavior: Theme.mobile ? Flickable.OvershootBounds : Flickable.StopAtBounds
+        acceptedButtons: Theme.mobile ? Qt.LeftButton : Qt.NoButton
         cacheBuffer: 800
         // делегат — Loader со стабильным sourceComponent (меняется только при смене сетка/список),
         // поэтому строки можно переиспользовать при прокрутке
@@ -349,9 +352,9 @@ Item {
 
             ColumnLayout {
                 id: headerCol
-                x: 32
+                x: page.margin
                 y: 4
-                width: parent.width - 64
+                width: parent.width - 2 * page.margin
                 spacing: 12
 
                 // Хлебные крошки папки
@@ -368,7 +371,7 @@ Item {
                     }
                     Icon { name: "chevron_right"; size: 20; color: Theme.fgSurfaceVariant }
                     Label { text: page.title; type: "titleLarge"; weight: 500 }
-                    ReadOnlyBadge { text: I18n.t("Spotify folder · read-only") }
+                    ReadOnlyBadge { visible: !Theme.mobile; text: I18n.t("Spotify folder · read-only") }
                     Item { Layout.fillWidth: true }
                 }
 
@@ -468,7 +471,7 @@ Item {
                     spacing: 16
                     readonly property string sort: Settings.librarySort
                     Head { Layout.fillWidth: true; Layout.preferredWidth: 3; text: I18n.t("Title") + (active ? "  ↓" : ""); active: parent.sort === "alpha" }
-                    Head { Layout.fillWidth: true; Layout.preferredWidth: 1.4; text: I18n.t("Creator") + (active ? "  ↓" : ""); active: parent.sort === "author" }
+                    Head { visible: !Theme.mobile; Layout.fillWidth: true; Layout.preferredWidth: 1.4; text: I18n.t("Creator") + (active ? "  ↓" : ""); active: parent.sort === "author" }
                     Head { visible: list.width - 40 >= 640; Layout.preferredWidth: 120; text: I18n.t("Added") + (active ? "  ↓" : ""); active: parent.sort === "added" }
                     Head { visible: list.width - 40 >= 860; Layout.preferredWidth: 120; text: I18n.t("Last played") + (active ? "  ↓" : ""); active: parent.sort === "recent" }
                     Item { Layout.preferredWidth: 32 }
@@ -491,7 +494,7 @@ Item {
             sourceComponent: page.grid ? gridRow : listRow
         }
 
-        footer: Item { width: list.width; height: 140 }
+        footer: Item { width: list.width; height: Theme.mobile ? 96 : 140 }
     }
     SmoothScroll { flickable: list; wheelStep: Settings.wheelStep }
 
@@ -506,7 +509,7 @@ Item {
             height: rowContent.implicitHeight
             Row {
                 id: rowContent
-                x: 32
+                x: page.margin
                 spacing: page.gapX
                 Repeater {
                     model: rowItem.items
@@ -586,8 +589,8 @@ Item {
             readonly property var e: parent ? parent.modelData : ({})
             implicitHeight: 64
             LibraryRow {
-                x: 20
-                width: parent.width - 40
+                x: Theme.mobile ? 4 : 20
+                width: parent.width - 2 * x
                 entry: parent.e
                 onClicked: page.open(parent.e)
                 onMenuRequested: p => page.showMenu(parent.e, p)
@@ -598,9 +601,9 @@ Item {
     // ---- Загрузка, пусто, не вошли ----
     Grid {
         visible: page.signedIn && page.model !== null && page.model.loading === true && page.model.count === 0
-        x: 32
+        x: page.margin
         y: 120
-        width: page.width - 64
+        width: page.width - 2 * page.margin
         columns: page.cols
         columnSpacing: page.gapX
         rowSpacing: page.gapY

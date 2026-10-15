@@ -26,7 +26,7 @@ Page {
         { key: "network", text: I18n.t("Network"), icon: "lan" },
         { key: "storage", text: I18n.t("Storage"), icon: "database" },
         { key: "updates", text: I18n.t("Updates"), icon: "download" }
-    ]
+    ].filter(s => s.key !== "updates" || Qt.platform.os !== "android")
     property string currentSection: "account"
 
     readonly property int screenCount: Qt.application.screens ? Qt.application.screens.length : 1
@@ -210,7 +210,8 @@ Page {
             width: page.width
             y: -8
             height: nav.height + 16
-            color: Theme.surfaceContainer     // цвет панели контента (Surface level "container")
+            // цвет фона под страницей: панель контента (Surface level "container"), на телефоне — само окно
+            color: Theme.mobile ? Theme.surface : Theme.surfaceContainer
             opacity: navHost.stick > 0 ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Theme.motion.effectsFast } }
         }
@@ -229,16 +230,20 @@ Page {
         title: I18n.t("Spotify account")
         icon: "account_circle"
 
-        RowLayout {
+        // На телефоне кнопка входа/выхода — под именем: в одну строку с аватаром ей не хватает места
+        GridLayout {
             Layout.fillWidth: true
-            spacing: 20
+            columns: Theme.mobile ? 2 : 3
+            columnSpacing: Theme.mobile ? 16 : 20
+            rowSpacing: 12
 
             Item {
-                Layout.preferredWidth: 72
-                Layout.preferredHeight: 72
+                Layout.preferredWidth: Theme.mobile ? 56 : 72
+                Layout.preferredHeight: Theme.mobile ? 56 : 72
+                Layout.alignment: Qt.AlignTop
                 Avatar {
                     anchors.fill: parent
-                    size: 72
+                    size: parent.width
                     visible: (page.account.avatar ?? "") === ""
                     name: page.signedIn ? (page.account.displayName ?? "") : ""
                 }
@@ -280,6 +285,8 @@ Page {
             Button {
                 visible: page.signedIn
                 Layout.alignment: Qt.AlignTop
+                Layout.column: Theme.mobile ? 1 : 2
+                Layout.row: Theme.mobile ? 1 : 0
                 // всегда с подписью: голая иконка «выйти» рядом с именем легко нажать, не поняв, что это
                 text: I18n.t("Sign out")
                 icon: "logout"
@@ -289,9 +296,11 @@ Page {
             Button {
                 visible: !page.signedIn
                 Layout.alignment: Qt.AlignTop
+                Layout.column: Theme.mobile ? 1 : 2
+                Layout.row: Theme.mobile ? 1 : 0
                 text: I18n.t("Sign in")
                 icon: "login"
-                onClicked: page.router ? page.router.reset("account") : Auth.startLogin()
+                onClicked: page.router ? (Theme.mobile ? page.router.push("account") : page.router.reset("account")) : Auth.startLogin()
             }
         }
 
@@ -593,7 +602,9 @@ Page {
         Label {
             Layout.fillWidth: true
             text: Auth.tokenStorage === "keyring"
-                  ? I18n.t("Permissions are stored in Windows Credential Manager. “Sign out” removes all three; the cache stays.")
+                  ? (Qt.platform.os === "android"
+                     ? I18n.t("Permissions are stored in the app's private storage. “Sign out” removes all three; the cache stays.")
+                     : I18n.t("Permissions are stored in Windows Credential Manager. “Sign out” removes all three; the cache stays."))
                   : I18n.t("Secret storage is unavailable: permissions last until the app closes. “Sign out” removes all three; the cache stays.")
             type: "bodySmall"
             color: Theme.fgSurfaceVariant
@@ -664,7 +675,7 @@ Page {
                         MouseArea {
                             id: swatchArea
                             anchors.fill: parent
-                            hoverEnabled: true
+                            hoverEnabled: !Theme.mobile
                             cursorShape: Qt.PointingHandCursor
                             onClicked: Settings.customSeed = parent.modelData
                         }
@@ -811,6 +822,8 @@ Page {
 
         // ---- Окно и плеер вне окна ----
         RowLayout {
+            // окна, трея и колеса мыши у телефона нет
+            visible: !Theme.mobile
             Layout.fillWidth: true
             Layout.topMargin: 8
             spacing: 10
@@ -907,18 +920,21 @@ Page {
         }
 
         SettingRow {
+            visible: !Theme.mobile
             title: I18n.t("Compact sidebar")
             description: I18n.t("Icons only. Turns on automatically in a narrow window")
             Switch { checked: Settings.sidebarCollapsed; onToggled: c => Settings.sidebarCollapsed = c }
         }
 
         SettingRow {
+            visible: !Theme.mobile
             title: I18n.t("Minimize to tray on close")
             description: I18n.t("Closing the window hides it in the tray and the music keeps playing. Quit from the tray menu or with Ctrl+Q")
             Switch { checked: Settings.closeToTray; onToggled: c => Settings.closeToTray = c }
         }
 
         SettingRow {
+            visible: !Theme.mobile
             title: I18n.t("Mouse wheel scroll step")
             description: I18n.t("{0} px per notch; grows up to ×2 when scrolling fast", Settings.wheelStep)
             Slider {
@@ -995,6 +1011,8 @@ Page {
         }
 
         SettingRow {
+            // телефон: в фоне анимации стоят всегда
+            visible: !Theme.mobile
             title: I18n.t("Save power in background")
             description: I18n.t("While the window is out of focus, decorative animations (progress wave, shapes, background shimmer) pause to reduce CPU load. Lyrics keep going")
             Switch { checked: Settings.calmWhenInactive; onToggled: c => Settings.calmWhenInactive = c }
@@ -1502,7 +1520,7 @@ Page {
                 width: page.compact ? 220 : 280
                 text: Settings.deviceName
                 placeholderText: Devices.thisDeviceName || "Materialfy"
-                leadingIcon: "computer"
+                leadingIcon: Theme.mobile ? "smartphone" : "computer"
                 function commit() {
                     const t = text.trim()
                     if (t !== Settings.deviceName)
@@ -1745,7 +1763,9 @@ Page {
 
         Label {
             Layout.fillWidth: true
-            text: I18n.t("The proxy password is stored in Credential Manager. Local network device discovery bypasses the proxy.")
+            text: Qt.platform.os === "android"
+                  ? I18n.t("The proxy password is stored in the app's private storage. Local network device discovery bypasses the proxy.")
+                  : I18n.t("The proxy password is stored in Credential Manager. Local network device discovery bypasses the proxy.")
             type: "bodySmall"
             color: Theme.fgSurfaceVariant
             wrapMode: Text.WordWrap
@@ -1801,6 +1821,7 @@ Page {
                 }
             }
             Button {
+                visible: Qt.platform.os !== "android"
                 text: I18n.t("Open folder")
                 icon: "folder_open"
                 style: "text"
@@ -1817,8 +1838,10 @@ Page {
     }
 
     // ================= Обновления (app/UpdatesCard.qml) =================
+    // Android: APK ставит пользователь сам (магазин или файл) — встроенного обновления нет
     UpdatesCard {
         id: updatesCard
+        visible: Qt.platform.os !== "android"
         compact: page.compact
     }
 

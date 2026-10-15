@@ -114,6 +114,8 @@ Item {
         }
 
         Label {
+            // телефон: владелец — уже в подписи под названием, отдельной колонке нет места
+            visible: !Theme.mobile
             Layout.fillWidth: true
             Layout.preferredWidth: 1.4
             text: root.kind === "liked" ? I18n.t("You") : (root.entry.owner ?? "")
@@ -139,13 +141,13 @@ Item {
         }
         IconButton {
             id: more
-            Layout.preferredWidth: 32
-            Layout.preferredHeight: 32
-            icon: "more_horiz"
-            size: "xs"
-            iconSize: 26
-            iconWeight: 700
-            opacity: hover.hovered || pressed ? 1 : 0
+            Layout.preferredWidth: Theme.mobile ? 40 : 32
+            Layout.preferredHeight: Theme.mobile ? 40 : 32
+            size: Theme.mobile ? "s" : "xs"
+            iconSize: Theme.mobile ? 24 : 26
+            iconWeight: Theme.mobile ? 500 : 700
+            icon: Theme.mobile ? "more_vert" : "more_horiz"
+            opacity: Theme.mobile || hover.hovered || pressed ? 1 : 0
             onClicked: root.menuRequested(more.mapToItem(null, 0, more.height))
         }
     }
@@ -160,5 +162,11 @@ Item {
         anchors.fill: parent
         radius: Theme.shape.large
         onClicked: root.clicked()
+        onPressAndHold: mouse => {
+            if (Theme.mobile)
+                root.menuRequested(mapToItem(null, mouse.x, mouse.y))
+            else
+                mouse.accepted = false
+        }
     }
 }

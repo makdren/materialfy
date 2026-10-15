@@ -71,6 +71,7 @@
 #endif
 
 #include "materialfy/src/qt/ffi.cxx.h"
+#include "mobile.h"
 
 namespace mf {
 
@@ -654,6 +655,11 @@ post_raise_window()
   QMetaObject::invokeMethod(
     QCoreApplication::instance(),
     [] {
+#if defined(Q_OS_ANDROID)
+      // вход через браузер завершён — вернуть приложение на передний план
+      mobile_bring_to_front();
+      return;
+#endif
       if (!main_window)
         return;
       main_window->show();

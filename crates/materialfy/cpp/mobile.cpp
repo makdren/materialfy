@@ -1,0 +1,318 @@
+#include "mobile.h"
+
+#include <QtCore/QCoreApplication>
+#include <QtCore/QDir>
+#include <QtCore/QDirIterator>
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
+#include <QtCore/QMetaObject>
+#include <QtCore/QPointer>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QUrl>
+#include <QtGui/QDesktopServices>
+
+#if defined(Q_OS_ANDROID)
+#include <QtCore/QJniEnvironment>
+#include <QtCore/QJniObject>
+#include <QtCore/qcoreapplication_platform.h>
+#include <jni.h>
+#endif
+
+namespace mf {
+
+namespace {
+QPointer<MobileShell> g_instance;
+
+#if defined(Q_OS_ANDROID)
+constexpr const char* BRIDGE = "org/materialfy/MobileBridge";
+
+QJniObject
+context_object()
+{
+  return QNativeInterface::QAndroidApplication::context();
+}
+
+QJniObject
+jstr(const QString& text)
+{
+  return QJniObject::fromString(text);
+}
+
+// org.materialfy.MobileBridge.onMediaCommand(String, long) — из Java (MediaSession, кнопки уведомления)
+void JNICALL
+native_media_command(JNIEnv* env, jclass, jstring command, jlong arg)
+{
+  const char* chars = env->GetStringUTFChars(command, nullptr);
+  const QString text = QString::fromUtf8(chars);
+  env->ReleaseStringUTFChars(command, chars);
+  mobile_post_media_command(text, static_cast<qint64>(arg));
+}
+
+void
+register_natives()
+{
+  static bool done = false;
+  if (done)
+    return;
+  done = true;
+  QJniEnvironment env;
+  const JNINativeMethod methods[] = {
+    { "onMediaCommand", "(Ljava/lang/String;J)V", reinterpret_cast<void*>(native_media_command) },
+  };
+  if (!env.registerNativeMethods(BRIDGE, methods, 1))
+    qWarning("materialfy: could not register MobileBridge natives");
+}
+
+// Рекурсивно скопировать каталог из assets:/ (QFile умеет читать APK-ассеты через движок платформы)
+bool
+copy_tree(const QString& from, const QString& to)
+{
+  QDir().mkpath(to);
+  bool ok = true;
+  QDirIterator it(from, QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+  while (it.hasNext()) {
+    const QString path = it.next();
+    const QString rel = path.mid(from.size());
+    const QString target = to + rel;
+    if (it.fileInfo().isDir()) {
+      QDir().mkpath(target);
+      continue;
+    }
+    QDir().mkpath(QFileInfo(target).absolutePath());
+    QFile::remove(target);
+    if (!QFile::copy(path, target)) {
+      qWarning("materialfy: could not extract %s", qPrintable(rel));
+      ok = false;
+    } else {
+      QFile::setPermissions(target, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+    }
+  }
+  return ok;
+}
+#endif
+} // namespace
+
+MobileShell::MobileShell(QObject* parent)
+  : QObject(parent)
+{
+  g_instance = this;
+#if defined(Q_OS_ANDROID)
+  register_natives();
+#endif
+}
+
+MobileShell*
+MobileShell::instance()
+{
+  return g_instance.data();
+}
+
+bool
+MobileShell::android() const
+{
+  return is_android();
+}
+
+void
+MobileShell::updateMedia(const QString& title,
+                         const QString& artist,
+                         const QString& album,
+                         const QString& coverUrl,
+                         qint64 durationMs,
+                         qint64 positionMs,
+                         bool playing,
+                         bool hasTrack,
+                         bool canPrevious,
+                         bool canNext,
+                         bool local)
+{
+#if defined(Q_OS_ANDROID)
+  QJniObject::callStaticMethod<void>(
+    BRIDGE,
+    "updateMedia",
+    "(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JJZZZZZ)V",
+    context_object().object(),
+    jstr(title).object<jstring>(),
+    jstr(artist).object<jstring>(),
+    jstr(album).object<jstring>(),
+    jstr(coverUrl).object<jstring>(),
+    static_cast<jlong>(durationMs),
+    static_cast<jlong>(positionMs),
+    static_cast<jboolean>(playing),
+    static_cast<jboolean>(hasTrack),
+    static_cast<jboolean>(canPrevious),
+    static_cast<jboolean>(canNext),
+    static_cast<jboolean>(local));
+  QJniEnvironment env;
+  env.checkAndClearExceptions();
+#else
+  Q_UNUSED(title)
+  Q_UNUSED(artist)
+  Q_UNUSED(album)
+  Q_UNUSED(coverUrl)
+  Q_UNUSED(durationMs)
+  Q_UNUSED(positionMs)
+  Q_UNUSED(playing)
+  Q_UNUSED(hasTrack)
+  Q_UNUSED(canPrevious)
+  Q_UNUSED(canNext)
+  Q_UNUSED(local)
+#endif
+}
+
+void
+MobileShell::setSystemBars(bool lightBars)
+{
+  if (m_lightBarsSet && m_lightBars == lightBars)
+    return;
+  m_lightBars = lightBars;
+  m_lightBarsSet = true;
+#if defined(Q_OS_ANDROID)
+  QNativeInterface::QAndroidApplication::runOnAndroidMainThread([lightBars] {
+    QJniObject::callStaticMethod<void>(BRIDGE,
+                                       "setSystemBars",
+                                       "(Landroid/content/Context;Z)V",
+                                       context_object().object(),
+                                       static_cast<jboolean>(lightBars));
+    QJniEnvironment env;
+    env.checkAndClearExceptions();
+  });
+#endif
+}
+
+void
+MobileShell::setBrowserWait(bool waiting)
+{
+  if (m_browserWait == waiting)
+    return;
+  m_browserWait = waiting;
+#if defined(Q_OS_ANDROID)
+  QJniObject::callStaticMethod<void>(
+    BRIDGE, "setBrowserWait", "(Landroid/content/Context;Z)V", context_object().object(), static_cast<jboolean>(waiting));
+  QJniEnvironment env;
+  env.checkAndClearExceptions();
+#endif
+}
+
+void
+MobileShell::moveTaskToBack()
+{
+#if defined(Q_OS_ANDROID)
+  QNativeInterface::QAndroidApplication::runOnAndroidMainThread([] {
+    QJniObject::callStaticMethod<void>(
+      BRIDGE, "moveTaskToBack", "(Landroid/content/Context;)V", context_object().object());
+    QJniEnvironment env;
+    env.checkAndClearExceptions();
+  });
+#endif
+}
+
+void
+MobileShell::haptic()
+{
+#if defined(Q_OS_ANDROID)
+  QNativeInterface::QAndroidApplication::runOnAndroidMainThread([] {
+    QJniObject::callStaticMethod<void>(
+      BRIDGE, "haptic", "(Landroid/content/Context;)V", context_object().object());
+    QJniEnvironment env;
+    env.checkAndClearExceptions();
+  });
+#endif
+}
+
+void
+mobile_post_media_command(const QString& command, qint64 arg)
+{
+  QCoreApplication* app = QCoreApplication::instance();
+  if (!app)
+    return;
+  QMetaObject::invokeMethod(app, [command, arg] {
+    if (MobileShell* shell = MobileShell::instance())
+      emit shell->mediaCommand(command, arg);
+  }, Qt::QueuedConnection);
+}
+
+void
+mobile_bring_to_front()
+{
+#if defined(Q_OS_ANDROID)
+  QJniObject::callStaticMethod<void>(
+    BRIDGE, "bringToFront", "(Landroid/content/Context;)V", context_object().object());
+  QJniEnvironment env;
+  env.checkAndClearExceptions();
+#endif
+}
+
+bool
+is_android()
+{
+#if defined(Q_OS_ANDROID)
+  return true;
+#else
+  return false;
+#endif
+}
+
+QString
+android_prepare_assets(const QString& version)
+{
+#if defined(Q_OS_ANDROID)
+  register_natives();
+  const QString base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+  const QString root = base + QStringLiteral("/bundle-") + version;
+  const QString stamp = root + QStringLiteral("/.complete");
+  if (!QFile::exists(stamp)) {
+    // старые версии — прочь
+    QDir baseDir(base);
+    for (const QString& old : baseDir.entryList({ QStringLiteral("bundle-*") }, QDir::Dirs | QDir::NoDotAndDotDot))
+      QDir(base + QLatin1Char('/') + old).removeRecursively();
+    bool ok = copy_tree(QStringLiteral("assets:/materialfy/qml"), root + QStringLiteral("/qml"));
+    ok = copy_tree(QStringLiteral("assets:/materialfy/assets"), root + QStringLiteral("/assets")) && ok;
+    if (!ok)
+      return {};
+    QFile marker(stamp);
+    if (marker.open(QIODevice::WriteOnly))
+      marker.write(version.toUtf8());
+  }
+  return root + QStringLiteral("/qml");
+#else
+  Q_UNUSED(version)
+  return {};
+#endif
+}
+
+std::size_t
+android_java_vm()
+{
+#if defined(Q_OS_ANDROID)
+  return reinterpret_cast<std::size_t>(QJniEnvironment::javaVM());
+#else
+  return 0;
+#endif
+}
+
+std::size_t
+android_context()
+{
+#if defined(Q_OS_ANDROID)
+  static jobject global = nullptr;
+  if (!global) {
+    QJniEnvironment env;
+    global = env->NewGlobalRef(context_object().object());
+  }
+  return reinterpret_cast<std::size_t>(global);
+#else
+  return 0;
+#endif
+}
+
+void
+open_url_external(const QString& url)
+{
+  QCoreApplication* app = QCoreApplication::instance();
+  if (!app)
+    return;
+  QMetaObject::invokeMethod(app, [url] { QDesktopServices::openUrl(QUrl(url)); }, Qt::QueuedConnection);
+}
+
+} // namespace mf

@@ -42,7 +42,7 @@ Page {
     underlay: [
         HeroShapes {
             width: page.width
-            active: page.visible && !page.bannerShown
+            active: page.visible && !page.bannerShown && !Theme.mobile
             headerHeight: hero.height + 24
             scroll: page.flickable.contentY
             contentX: page.sideMargin - 16
@@ -54,7 +54,7 @@ Page {
         // Поверх — скрим цвета поверхности: текст шапки читается и в светлой, и в тёмной теме.
         Item {
             id: banner
-            readonly property real above: 64      // верхняя панель над страницей
+            readonly property real above: Theme.mobile ? 56 : 64      // верхняя панель над страницей
             readonly property real below: 120     // запас под шапкой на растворение
             readonly property color tone: Theme.surfaceContainer
             // Высота слоя — ступенями 128 px, ниже фото — пустая полоса (cut): пока шапка дорастает,
@@ -123,17 +123,21 @@ Page {
         Layout.preferredHeight: page.hasBanner ? Math.max(heroRow.implicitHeight + 32, Math.round(Math.min(440, Math.max(260, page.width * 0.3))))
                                                : heroRow.implicitHeight + 32
 
-        RowLayout {
+        // Телефон: фото над именем; при широкой шапке-баннере — без фото (его роль играет баннер)
+        GridLayout {
             id: heroRow
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 16
-            spacing: page.width < 560 ? 20 : 32
-            Behavior on spacing { NumberAnimation { duration: Theme.motion.spatialDefault; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasized } }
+            columns: Theme.mobile ? 1 : 2
+            rowSpacing: 16
+            columnSpacing: page.width < 560 ? 20 : 32
+            Behavior on columnSpacing { NumberAnimation { duration: Theme.motion.spatialDefault; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasized } }
 
             MorphImage {
-                Layout.preferredWidth: page.width > 760 ? 208 : page.width < 560 ? 104 : 144
+                visible: !(Theme.mobile && page.hasBanner)
+                Layout.preferredWidth: Theme.mobile ? 136 : page.width > 760 ? 208 : page.width < 560 ? 104 : 144
                 Layout.preferredHeight: Layout.preferredWidth
                 Behavior on Layout.preferredWidth { NumberAnimation { duration: Theme.motion.spatialDefault; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasized } }
                 source: page.info.coverLarge || page.info.cover || ""
@@ -171,21 +175,21 @@ Page {
                 // в узком окне кнопки переносятся, а не распирают шапку
                 Flow {
                     Layout.fillWidth: true
-                    Layout.topMargin: 14
-                    spacing: 12
+                    Layout.topMargin: Theme.mobile ? 10 : 14
+                    spacing: Theme.mobile ? 8 : 12
                     visible: (page.info.name ?? "") !== ""
                     Button {
                         visible: page.artist && page.artist.popular.count > 0
                         text: I18n.t("Play")
                         icon: "play_arrow"
-                        size: "m"
+                        size: Theme.mobile ? "s" : "m"
                         onClicked: Player.playFrom(page.artist.popular, 0)
                     }
                     Button {
                         text: I18n.t("Artist’s radio")
                         icon: "radio"
                         style: "tonal"
-                        size: "m"
+                        size: Theme.mobile ? "s" : "m"
                         enabled: !Radio.locked
                         onClicked: Radio.playStation("artist:" + page.artistId, page.info.name ?? "")
                     }
@@ -193,7 +197,7 @@ Page {
                         Accessible.name: page.followed ? I18n.t("Following") : I18n.t("Follow")
                         icon: page.followed ? "how_to_reg" : "person_add"
                         style: page.followed ? "tonal" : "standard"
-                        size: "m"
+                        size: Theme.mobile ? "s" : "m"
                         checkable: true
                         checked: page.followed
                         autoToggle: false
@@ -233,6 +237,8 @@ Page {
     ColumnLayout {
         Layout.fillWidth: true
         Layout.topMargin: -12
+        Layout.leftMargin: Theme.mobile ? -8 : 0
+        Layout.rightMargin: Theme.mobile ? -8 : 0
         spacing: 0
         Repeater {
             model: page.artist ? page.artist.popular : null
@@ -275,12 +281,16 @@ Page {
     }
     QtObject {
         id: tilesPerRow
-        readonly property int value: Math.max(1, Math.floor((page.width - 2 * page.sideMargin + 20) / (168 + 20)))
+        // телефон: две колонки (и больше на широком), плитки тянутся на всю ширину
+        readonly property real gap: Theme.mobile ? 16 : 20
+        readonly property int value: Theme.mobile ? Math.max(2, Math.floor((page.width - 2 * page.sideMargin + gap) / (140 + gap)))
+                                                  : Math.max(1, Math.floor((page.width - 2 * page.sideMargin + 20) / (168 + 20)))
+        readonly property real tile: Theme.mobile ? Math.floor((page.width - 2 * page.sideMargin - (value - 1) * gap) / value) : 168
     }
     // Плитки — через Loader: скрытые (за «Все») не создаются, у крупного исполнителя это сотни обложек
     Flow {
         Layout.fillWidth: true
-        spacing: 20
+        spacing: tilesPerRow.gap
         Repeater {
             model: page.artist ? page.artist.albums : null
             Loader {
@@ -290,6 +300,7 @@ Page {
                 active: page.allAlbums || index < tilesPerRow.value * 2
                 visible: active
                 sourceComponent: MediaTile {
+                    size: tilesPerRow.tile
                     cover: slot.model.cover
                     coverKind: "album"
                     coverArtist: page.info.name ?? ""
@@ -314,7 +325,7 @@ Page {
     }
     Flow {
         Layout.fillWidth: true
-        spacing: 20
+        spacing: tilesPerRow.gap
         Repeater {
             model: page.artist ? page.artist.alsoAlbums : null
             Loader {
@@ -324,6 +335,7 @@ Page {
                 active: index < tilesPerRow.value
                 visible: active
                 sourceComponent: MediaTile {
+                    size: tilesPerRow.tile
                     cover: slot.model.cover
                     coverKind: "album"
                     coverArtist: (slot.model.artists ?? "").split(", ")[0]
@@ -387,7 +399,7 @@ Page {
     }
     Flow {
         Layout.fillWidth: true
-        spacing: 20
+        spacing: tilesPerRow.gap
         Repeater {
             model: page.artist ? page.artist.similar : null
             Loader {
@@ -397,7 +409,7 @@ Page {
                 active: index < tilesPerRow.value
                 visible: active
                 sourceComponent: MediaTile {
-                    size: 148
+                    size: Theme.mobile ? tilesPerRow.tile : 148
                     round: true
                     placeholderIcon: "person"
                     cover: slot.model.cover

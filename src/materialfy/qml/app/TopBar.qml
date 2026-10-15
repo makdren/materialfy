@@ -12,9 +12,11 @@ Item {
     required property Window window
     // узкое окно: боковая панель спрятана в шторку, открывается этой кнопкой
     property bool showMenuButton: false
+    // дополнительные кнопки справа (телефон: новинки и аккаунт на главной)
+    property Component trailing: null
     signal menuClicked()
 
-    implicitHeight: 64
+    implicitHeight: Theme.mobile ? 56 : 64
 
     readonly property var page: router.currentItem
     // заголовок страницы с собственной шапкой (heroTitle: true) появляется только после прокрутки
@@ -24,6 +26,8 @@ Item {
     // (его возвращает нативная рамка оболочки). Если система отказала — двигаем окно сами.
     DragHandler {
         property bool manual: false
+        // телефон: окно не двигается, а жест мешал бы прокрутке
+        enabled: !Theme.mobile
         target: null
         grabPermissions: PointerHandler.TakeOverForbidden
         onActiveChanged: if (active) manual = !root.window.startSystemMove()
@@ -33,14 +37,15 @@ Item {
         }
     }
     TapHandler {
+        enabled: !Theme.mobile
         acceptedButtons: Qt.LeftButton
         onDoubleTapped: windowButtons.toggleMaximized()
     }
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 16
-        anchors.rightMargin: 16
+        anchors.leftMargin: Theme.mobile ? 4 : 16
+        anchors.rightMargin: Theme.mobile ? 8 : 16
         spacing: 8
 
         // кнопка шторки въезжает и раздвигает заголовок, а не появляется рывком
@@ -66,8 +71,8 @@ Item {
         // Без «назад» кнопка схлопывается, и заголовок стоит у левого края
         Item {
             Layout.preferredWidth: back.enabled ? back.implicitWidth : 0
-            // заголовок встаёт по левому краю содержимого страницы (отступ 32)
-            Layout.rightMargin: back.enabled || root.showMenuButton ? 0 : 8
+            // заголовок встаёт по левому краю содержимого страницы (отступ 32; на телефоне — 16)
+            Layout.rightMargin: back.enabled || root.showMenuButton ? 0 : Theme.mobile ? -4 : 8
             Layout.preferredHeight: back.implicitHeight
             Behavior on Layout.preferredWidth { NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.OutCubic } }
             Behavior on Layout.rightMargin { NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.OutCubic } }
@@ -98,8 +103,15 @@ Item {
             sourceComponent: root.page ? root.page.toolbar ?? null : null
         }
 
+        Loader {
+            Layout.alignment: Qt.AlignVCenter
+            active: root.trailing !== null
+            sourceComponent: root.trailing
+        }
+
         WindowButtons {
             id: windowButtons
+            visible: !Theme.mobile
             window: root.window
         }
     }

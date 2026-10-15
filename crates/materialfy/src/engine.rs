@@ -339,6 +339,9 @@ pub fn run(cli: Cli) -> i32 {
     ffi::app_set_names(&qstr("Materialfy"), &qstr("materialfy"), &qstr("materialfy"));
     let args: Vec<String> = std::env::args_os().map(|a| a.to_string_lossy().into_owned()).collect();
     ffi::app_create(&args);
+    if ffi::is_android() {
+        prepare_android();
+    }
 
     let rt = match build_runtime() {
         Ok(rt) => rt,
@@ -370,6 +373,7 @@ pub fn run(cli: Cli) -> i32 {
     load_fonts();
     init_tracing();
 
+    mf_i18n::set_phone(cli.mobile);
     // UI language before any service or QML produces text (default: the OS UI language — Russian or English)
     crate::bridges::translations::apply_language(crate::bridges::translations::effective_language(&settings));
     let options = ServicesOptions {
@@ -419,11 +423,23 @@ fn run_engine(cli: &Cli, rt: &tokio::runtime::Runtime, services: &Services) -> i
     ffi::engine_set_context_bool(e.as_mut(), &qstr("materialfyDebugWheel"), cli.debug_wheel);
     ffi::engine_set_context_bool(e.as_mut(), &qstr("materialfyDebugFps"), cli.debug_fps);
     // Значок в трее: не для снимков и не для галереи
-    ffi::engine_set_context_bool(e.as_mut(), &qstr("materialfyTray"), cli.screenshot.is_none() && !cli.gallery);
+    ffi::engine_set_context_bool(
+        e.as_mut(),
+        &qstr("materialfyTray"),
+        cli.screenshot.is_none() && !cli.gallery && !cli.mobile,
+    );
+    // Раскладка телефона: нижняя навигация, плеер-шторка, крупные цели касания (Theme.mobile)
+    ffi::engine_set_context_bool(e.as_mut(), &qstr("materialfyMobile"), cli.mobile);
 
     let entry = match &cli.qml {
         Some(file) => absolute(file),
-        None => qml_dir().join(if cli.gallery { "gallery/Gallery.qml" } else { "Main.qml" }),
+        None => qml_dir().join(if cli.gallery {
+            "gallery/Gallery.qml"
+        } else if cli.mobile {
+            "MobileMain.qml"
+        } else {
+            "Main.qml"
+        }),
     };
     e.as_mut().set_initial_properties(&initial_properties(cli));
     e.as_mut().load(&QUrl::from_local_file(&qpath(&entry)));
@@ -454,7 +470,7 @@ fn run_engine(cli: &Cli, rt: &tokio::runtime::Runtime, services: &Services) -> i
     }
     // SAFETY: root — живое окно движка, GUI-поток
     unsafe { ffi::watch_software_rendering(root) };
-    if cli.screenshot.is_none() {
+    if cli.screenshot.is_none() && !ffi::is_android() {
         crate::winframe::install(root);
         // SAFETY: root — живое окно движка, GUI-поток
         unsafe { ffi::install_memory_trim(root) };
@@ -473,6 +489,33 @@ fn run_engine(cli: &Cli, rt: &tokio::runtime::Runtime, services: &Services) -> i
     let code = ffi::app_exec();
     drop(engine);
     code
+}
+
+/// Android, сразу после QApplication: QML и ассеты из APK — в каталог приложения (std::fs и движок QML читают
+/// обычные файлы), JNI-контекст для cpal (AAudio), браузер для входа — через Intent.
+fn prepare_android() {
+    let qml = ffi::android_prepare_assets(&qstr(env!("CARGO_PKG_VERSION"))).to_string();
+    if qml.is_empty() {
+        eprintln!("materialfy: could not extract the QML bundle from the APK");
+    } else {
+        // SAFETY: до запуска рантайма tokio и до первого qml_dir(); других потоков Rust, читающих окружение, нет
+        unsafe { std::env::set_var("MATERIALFY_QML_DIR", &qml) };
+    }
+    // на других ОС функции есть (C++ собирается везде), но не нужны
+    #[cfg(not(target_os = "android"))]
+    let _ = (ffi::android_java_vm, ffi::android_context);
+    #[cfg(target_os = "android")]
+    {
+        let (vm, context) = (ffi::android_java_vm(), ffi::android_context());
+        if vm != 0 && context != 0 {
+            // SAFETY: JavaVM* процесса и глобальная ссылка на Context живут до конца процесса
+            unsafe { ndk_context::initialize_android_context(vm as *mut _, context as *mut _) };
+        }
+    }
+    sf_services::set_browser_opener(|url| {
+        ffi::open_url_external(&qstr(url));
+        Ok(())
+    });
 }
 
 fn find_qml_dir() -> PathBuf {

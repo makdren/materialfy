@@ -24,7 +24,11 @@ Page {
     // в старом бинарнике новых моделей поиска может ещё не быть
     readonly property var showsModel: Catalog.searchShows ?? null
     readonly property var episodesModel: Catalog.searchEpisodes ?? null
-    readonly property int perRow: Math.max(1, Math.floor((width - 2 * sideMargin + 20) / (168 + 20)))
+    // телефон: плитки от 140 с зазором 16 растягиваются на всю ширину (две колонки на любом экране)
+    readonly property real tileGap: Theme.mobile ? 16 : 20
+    readonly property int perRow: Theme.mobile ? Math.max(2, Math.floor((width - 2 * sideMargin + tileGap) / (140 + tileGap)))
+                                               : Math.max(1, Math.floor((width - 2 * sideMargin + 20) / (168 + 20)))
+    readonly property real tile: Theme.mobile ? Math.floor((width - 2 * sideMargin - (perRow - 1) * tileGap) / perRow) : 168
 
     function followersText(n) {
         if (!(n > 0))
@@ -42,7 +46,9 @@ Page {
     }
     Component.onCompleted: {
         showQuery(Catalog.searchQuery)
-        Qt.callLater(focusSearch)
+        // телефон: клавиатура — только по касанию поля, а не при каждом входе в раздел
+        if (!Theme.mobile)
+            Qt.callLater(focusSearch)
     }
 
     Timer {
@@ -138,7 +144,7 @@ Page {
             readonly property var item: best.item ?? ({})
             visible: page.all && best.type !== undefined
             Layout.fillWidth: true
-            Layout.preferredHeight: 168
+            Layout.preferredHeight: Theme.mobile ? 120 : 168
 
             Rectangle {
                 anchors.fill: parent
@@ -152,11 +158,11 @@ Page {
             }
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: 20
-                spacing: 24
+                anchors.margins: Theme.mobile ? 16 : 20
+                spacing: Theme.mobile ? 16 : 24
                 MorphImage {
-                    Layout.preferredWidth: 128
-                    Layout.preferredHeight: 128
+                    Layout.preferredWidth: Theme.mobile ? 88 : 128
+                    Layout.preferredHeight: Layout.preferredWidth
                     source: bestCard.item.coverLarge || bestCard.item.cover || ""
                     shape: bestCard.best.type === "artist" ? "circle" : "softSquare"
                 }
@@ -172,7 +178,7 @@ Page {
                     Label {
                         Layout.fillWidth: true
                         text: bestCard.item.title ?? bestCard.item.name ?? ""
-                        type: "headlineMedium"
+                        type: Theme.mobile ? "titleLarge" : "headlineMedium"
                         weight: 700
                     }
                     Label {
@@ -187,7 +193,7 @@ Page {
                 }
                 PlayButton {
                     visible: bestCard.best.type === "track"
-                    size: 64
+                    size: Theme.mobile ? 48 : 64
                     playing: Player.playing && Player.trackId === (bestCard.item.trackId ?? "-")
                     onClicked: page.openBest()
                 }
@@ -204,6 +210,9 @@ Page {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.topMargin: -12
+            // строки треков — вровень с полями страницы (их собственный отступ 8 на телефоне)
+            Layout.leftMargin: Theme.mobile ? -8 : 0
+            Layout.rightMargin: Theme.mobile ? -8 : 0
             visible: page.all || page.type === "tracks"
             spacing: 0
             Repeater {
@@ -243,14 +252,14 @@ Page {
         Flow {
             Layout.fillWidth: true
             visible: page.all || page.type === "artists"
-            spacing: 20
+            spacing: page.tileGap
             Repeater {
                 model: Catalog.searchArtists
                 MediaTile {
                     required property int index
                     required property var model
                     visible: !page.all || index < page.perRow
-                    size: 148
+                    size: Theme.mobile ? page.tile : 148
                     round: true
                     placeholderIcon: "person"
                     cover: model.cover
@@ -270,13 +279,14 @@ Page {
         Flow {
             Layout.fillWidth: true
             visible: page.all || page.type === "albums"
-            spacing: 20
+            spacing: page.tileGap
             Repeater {
                 model: Catalog.searchAlbums
                 MediaTile {
                     required property int index
                     required property var model
                     visible: !page.all || index < page.perRow
+                    size: page.tile
                     cover: model.cover
                     title: model.title
                     subtitle: [model.artists, model.year || ""].filter(x => x).join(" · ")
@@ -296,13 +306,14 @@ Page {
         Flow {
             Layout.fillWidth: true
             visible: page.all || page.type === "playlists"
-            spacing: 20
+            spacing: page.tileGap
             Repeater {
                 model: Catalog.searchPlaylists
                 MediaTile {
                     required property int index
                     required property var model
                     visible: !page.all || index < page.perRow
+                    size: page.tile
                     placeholderIcon: "queue_music"
                     cover: model.cover
                     title: model.title
@@ -325,13 +336,14 @@ Page {
         Flow {
             Layout.fillWidth: true
             visible: page.all || page.type === "shows"
-            spacing: 20
+            spacing: page.tileGap
             Repeater {
                 model: page.showsModel
                 MediaTile {
                     required property int index
                     required property var model
                     visible: !page.all || index < page.perRow
+                    size: page.tile
                     placeholderIcon: "podcasts"
                     cover: model.cover
                     title: model.name

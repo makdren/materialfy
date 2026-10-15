@@ -1,0 +1,7 @@
+{
+  "Keys are stored in the app's private storage.": "As chaves ficam no armazenamento privado do app.",
+  "Keys in app storage": "Chaves no armazenamento do app",
+  "Permissions are stored in the app's private storage. “Sign out” removes all three; the cache stays.": "As permissões ficam no armazenamento privado do app. “Sair” remove todas as três; o cache fica.",
+  "The proxy password is stored in the app's private storage. Local network device discovery bypasses the proxy.": "A senha do proxy fica no armazenamento privado do app. A descoberta de dispositivos na rede local passa por fora do proxy.",
+  "No password needed: you confirm on the Spotify website, and the key is stored in the app's private storage": "Não precisa de senha: você confirma no site do Spotify e a chave fica no armazenamento privado do app"
+}

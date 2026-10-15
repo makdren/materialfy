@@ -157,7 +157,7 @@ Item {
                         visible: !action.moving
                         anchors.verticalCenter: parent.verticalCenter
                         tight: true
-                        name: root.needsSetup ? "speaker" : "computer"
+                        name: root.needsSetup ? "speaker" : Theme.mobile ? "smartphone" : "computer"
                         size: 20
                         color: root.lost ? Theme.errorContainer : Theme.fgSecondaryContainer
                     }

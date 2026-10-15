@@ -153,9 +153,9 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 12 - 8 * root._editT
-        anchors.rightMargin: 16
-        spacing: 16
+        anchors.leftMargin: (Theme.mobile ? 8 : 12) - 8 * root._editT
+        anchors.rightMargin: Theme.mobile ? 0 : 16
+        spacing: Theme.mobile ? 12 : 16
         // недоступный в регионе трек приглушён, как в очереди (QueueRow)
         opacity: root.available ? 1 : Theme.stateLayer.disabledContent
 
@@ -304,19 +304,24 @@ Item {
 
         // Сердце и ⋯ — в просмотре; «убрать» — в правке (перекрёстное растворение)
         Item {
-            implicitWidth: root.editable ? 32 : 32 + 16 + 32
-            implicitHeight: 32
+            // телефон: «⋯» видна всегда (наведения нет), сердце — только у лайкнутых, кнопка «⋯» крупнее
+            readonly property bool heartShown: !Theme.mobile || root.liked
+            implicitWidth: root.editable ? 32 : Theme.mobile ? (heartShown ? 32 + 4 : 0) + 40 : 32 + 16 + 32
+            implicitHeight: Theme.mobile ? 40 : 32
 
             Row {
                 visible: opacity > 0
                 opacity: 1 - root._editT
                 Behavior on opacity { NumberAnimation { duration: Theme.motion.effectsDefault } }
-                spacing: 16
+                spacing: Theme.mobile ? 4 : 16
+                anchors.verticalCenter: parent.verticalCenter
 
                 // Сердце: залитое у лайкнутых, контур — при наведении на строку
                 Item {
+                    visible: parent.parent.heartShown
                     width: 32
                     height: 32
+                    anchors.verticalCenter: parent.verticalCenter
                     Icon {
                         anchors.centerIn: parent
                         visible: root.available
@@ -338,17 +343,17 @@ Item {
                 }
                 // «⋯» — с первого наведения на строку
                 Loader {
-                    width: 32
-                    height: 32
-                    active: rowHover.hovered || item !== null
+                    width: Theme.mobile ? 40 : 32
+                    height: Theme.mobile ? 40 : 32
+                    active: Theme.mobile || rowHover.hovered || item !== null
                     sourceComponent: IconButton {
                         id: moreButton
-                        icon: "more_horiz"
-                        size: "xs"
-                        iconSize: 26
-                        iconWeight: 700
+                        icon: Theme.mobile ? "more_vert" : "more_horiz"
+                        size: Theme.mobile ? "s" : "xs"
+                        iconSize: Theme.mobile ? 24 : 26
+                        iconWeight: Theme.mobile ? 500 : 700
                         enabled: !root.editable
-                        opacity: rowHover.hovered || pressed ? 1 : 0
+                        opacity: Theme.mobile || rowHover.hovered || pressed ? 1 : 0
                         onClicked: root.openMenuAt(moreButton)
                     }
                 }
@@ -372,6 +377,8 @@ Item {
         }
 
         Label {
+            // телефон: длительность — в меню «О треке»; место нужнее названию
+            visible: !Theme.mobile
             Layout.preferredWidth: 44
             text: root._time(root.durationMs)
             type: "bodyMedium"
@@ -404,5 +411,14 @@ Item {
         radius: Theme.shape.large
         dragged: root.dragging
         onClicked: if (!root.editable) root.activated()
+        // телефон: долгое нажатие — меню трека (на десктопе — правая кнопка)
+        onPressAndHold: mouse => {
+            if (Theme.mobile && !root.editable) {
+                MobileShell.haptic()
+                root.openMenu(root, mouse.x, mouse.y)
+            } else {
+                mouse.accepted = false
+            }
+        }
     }
 }

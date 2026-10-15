@@ -124,6 +124,8 @@ Item {
     Item {
         id: content
         anchors.fill: parent
+        // свайп вниз тянет плеер за пальцем
+        transform: Translate { y: swipeDown.active ? Math.max(0, swipeDown.translation.y * 0.5) : 0 }
         opacity: Math.min(1, root.reveal / 0.12)
         layer.enabled: root.reveal < 1
         layer.effect: MultiEffect {
@@ -156,6 +158,18 @@ Item {
         // Блокирует клики по приложению под плеером
         MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
 
+        // Телефон: свайп вниз по плееру — свернуть (текст песни и очередь листаются сами — там жест их)
+        DragHandler {
+            id: swipeDown
+            enabled: Theme.mobile && root.open && !(root.layoutCompact && root.sheetOpen)
+            target: null
+            xAxis.enabled: false
+            onActiveChanged: {
+                if (!active && translation.y > 120)
+                    root.hide()
+            }
+        }
+
         // Верхняя панель: свернуть + переключатель очередь/текст (над правой колонкой)
         RowLayout {
             id: topRow
@@ -163,6 +177,8 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: 16
+            // телефон: под статус-баром
+            anchors.topMargin: 16 + Theme.safeTop
             spacing: 12
             IconButton { icon: "keyboard_arrow_down"; style: "tonal"; onClicked: root.hide() }
             Item { Layout.fillWidth: true }
@@ -184,6 +200,7 @@ Item {
             // плеер закрывает всё окно — кнопки окна и перетаскивание за пустое место панели здесь свои
             WindowButtons {
                 id: windowButtons
+                visible: !Theme.mobile
                 Layout.alignment: Qt.AlignVCenter
                 Layout.leftMargin: 4
                 window: root.Window.window
@@ -191,6 +208,7 @@ Item {
 
             DragHandler {
                 property bool manual: false
+                enabled: !Theme.mobile
                 target: null
                 grabPermissions: PointerHandler.TakeOverForbidden
                 onActiveChanged: if (active) manual = !root.Window.window.startSystemMove()
@@ -200,6 +218,7 @@ Item {
                 }
             }
             TapHandler {
+                enabled: !Theme.mobile
                 acceptedButtons: Qt.LeftButton
                 onDoubleTapped: windowButtons.toggleMaximized()
             }
@@ -213,6 +232,8 @@ Item {
             anchors.right: parent.right
             anchors.margins: root.layoutCompact ? 16 : 32
             anchors.topMargin: 8
+            // телефон: над полосой навигации системы
+            anchors.bottomMargin: (root.layoutCompact ? 16 : 32) + Theme.safeBottom
             spacing: 48
 
             // ---- Колонка плеера (слева, с отступом от края): обложка и управление ----
@@ -421,6 +442,7 @@ Item {
                     id: volumeRow
                     // громкость играющего устройства; у части устройств её меняют только на них самих
                     readonly property bool locked: Player.remote === true && Player.canSetVolume === false
+                    readonly property bool slider: !Theme.mobile || Player.remote === true
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 4
                     spacing: 12
@@ -439,12 +461,15 @@ Item {
                         fill: 1
                         color: Theme.primary
                     }
+                    // Телефон, музыка играет здесь: громкость — кнопками телефона, отдельный ползунок не нужен
                     Icon {
+                        visible: volumeRow.slider
                         Layout.leftMargin: Player.remote === true ? 0 : 8
                         name: volumeRow.locked ? "lock" : Player.volume > 0.5 ? "volume_up" : Player.volume > 0 ? "volume_down" : "volume_off"
                         size: 22
                     }
                     Slider {
+                        visible: volumeRow.slider
                         Layout.preferredWidth: root.layoutCompact ? Math.min(220, left.colWidth - 260) : 220
                         value: Player.volume
                         trackHeight: 14

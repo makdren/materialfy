@@ -122,7 +122,7 @@ Item {
                         playingShape: "cookie9"
                         onClicked: root.playClicked()
                     }
-                    MouseArea { id: playArea; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
+                    MouseArea { id: playArea; anchors.fill: parent; hoverEnabled: !Theme.mobile; acceptedButtons: Qt.NoButton }
                 }
             }
         }
@@ -167,9 +167,11 @@ Item {
         id: area
         z: -1
         anchors.fill: parent
-        hoverEnabled: true
+        hoverEnabled: !Theme.mobile
         cursorShape: Qt.PointingHandCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton
+        // телефон: меню — долгим нажатием (правой кнопки нет)
+        onPressAndHold: mouse => { if (Theme.mobile) root.menuRequested(root.mapToItem(null, mouse.x, mouse.y)); else mouse.accepted = false }
         onClicked: mouse => {
             if (mouse.button === Qt.RightButton)
                 root.menuRequested(root.mapToItem(null, mouse.x, mouse.y))

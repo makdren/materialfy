@@ -15,7 +15,8 @@ MouseArea {
     property bool ripple: true
     property bool dragged: false
 
-    hoverEnabled: true
+    // на касаниях наведения нет: синтезированная из касания мышь оставляет «залипшую» подсветку
+    hoverEnabled: !Theme.mobile
     cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
 
     readonly property real _opacity: !enabled ? 0

@@ -714,7 +714,7 @@ impl Core {
         Some(DeviceItem {
             id,
             name: self.local_device_name.clone(),
-            kind: "computer".into(),
+            kind: if cfg!(target_os = "android") { "smartphone" } else { "computer" }.into(),
             is_active: active,
             is_this_computer: true,
             is_restricted: false,

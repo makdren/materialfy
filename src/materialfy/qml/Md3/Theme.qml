@@ -42,6 +42,11 @@ Item {
     // Режим для слабых ПК, включённый вручную, тоже: на совсем слабой машине тормозят и переходы.
     readonly property bool reducedMotion: Settings.animations === "reduced" || Settings.lowPowerMode === "on"
         || (Settings.animations === "system" && Settings.systemReducedMotion === true)
+    // Раскладка телефона (MobileMain.qml, сборка для Android и --mobile): касания вместо курсора — без наведения,
+    // крупные цели, нижние листы вместо всплывающих меню. safeTop/safeBottom — системные панели и вырез экрана.
+    property bool mobile: false
+    property real safeTop: 0
+    property real safeBottom: 0
     // Цвет схемы, когда ничего не играет
     readonly property color defaultSeed: "#8C6DFF"   // Ultraviolet, BRAND_SEED в bridges/theme.rs
     // Новая схема применена: instant — мгновенно под шторкой, иначе — началась плавная анимация.

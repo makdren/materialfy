@@ -1,0 +1,7 @@
+{
+  "Keys are stored in the app's private storage.": "Ключи хранятся в закрытом хранилище приложения.",
+  "Keys in app storage": "Ключи в хранилище приложения",
+  "Permissions are stored in the app's private storage. “Sign out” removes all three; the cache stays.": "Разрешения хранятся в закрытом хранилище приложения. «Выйти» удаляет все три; кэш остаётся.",
+  "The proxy password is stored in the app's private storage. Local network device discovery bypasses the proxy.": "Пароль прокси хранится в закрытом хранилище приложения. Поиск устройств в локальной сети идёт мимо прокси.",
+  "No password needed: you confirm on the Spotify website, and the key is stored in the app's private storage": "Пароль не нужен: подтверждение проходит на сайте Spotify, ключ хранится в закрытом хранилище приложения"
+}

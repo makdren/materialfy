@@ -31,6 +31,8 @@ Item {
         menu.open(_items(), point, size)
     }
     function close() { menu.close() }
+    // «назад» системы (телефон): true — меню было открыто и закрылось (или вернулось из подменю)
+    function back() { return infoDialog.visible ? (infoDialog.close(), true) : menu.back() }
 
     function _playlistItems() {
         const out = [{ id: "playlist:new", text: I18n.t("New playlist…"), icon: "add" }]
