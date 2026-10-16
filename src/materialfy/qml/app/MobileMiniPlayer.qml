@@ -13,13 +13,31 @@ Item {
     signal openNowPlaying(point coverCenter)
 
     implicitHeight: 64
+    // полноэкранный плеер открыт — плашки нет; он уходит — она появляется сама (MobileMain: holdsMini)
+    property bool suppressed: false
+    readonly property bool shown: Player.hasTrack && !suppressed
     visible: opacity > 0.01
-    opacity: Player.hasTrack ? 1 : 0
-    Behavior on opacity { NumberAnimation { duration: Theme.motion.effectsDefault } }
-    // появляется, выезжая снизу с лёгким пружинным перелётом; уходит вниз
-    transform: Translate {
-        y: Player.hasTrack ? 0 : 32
-        Behavior on y { NumberAnimation { duration: Theme.motion.spatialDefault; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.springDefault } }
+    opacity: shown ? 1 : 0
+    // прячется быстро (плеер раскрывается поверх), появляется чуть дольше
+    Behavior on opacity { NumberAnimation { duration: root.shown ? Theme.motion.effectsDefault : Theme.motion.effectsFast } }
+    // появляется, выезжая снизу и дорастая с лёгким пружинным перелётом; уходит вниз
+    transform: [
+        Scale {
+            origin.x: root.width / 2
+            origin.y: root.height
+            xScale: root._appear
+            yScale: root._appear
+        },
+        Translate { y: (1 - root._appear) * 160 }
+    ]
+    property real _appear: shown ? 1 : 0.8
+    Behavior on _appear {
+        enabled: Theme.reducedMotion !== true
+        NumberAnimation {
+            duration: root.shown ? Theme.motion.spatialDefault : Theme.motion.effectsDefault
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: root.shown ? Theme.motion.springDefault : Theme.motion.emphasizedAccelerate
+        }
     }
 
     function _open() {

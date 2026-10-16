@@ -105,18 +105,18 @@ Item {
     ParallelAnimation {
         id: outAnim
         property Item target
-        NumberAnimation { target: outAnim.target; property: "scale"; to: 0.15; duration: 380; easing.type: Easing.InCubic }
-        NumberAnimation { id: outRot; target: outAnim.target; property: "rotation"; duration: 380; easing.type: Easing.InCubic }
-        NumberAnimation { target: outAnim.target; property: "opacity"; to: 0; duration: 380; easing.type: Easing.InQuad }
+        NumberAnimation { target: outAnim.target; property: "scale"; to: 0.15; duration: 300; easing.type: Easing.InCubic }
+        NumberAnimation { id: outRot; target: outAnim.target; property: "rotation"; duration: 300; easing.type: Easing.InCubic }
+        NumberAnimation { target: outAnim.target; property: "opacity"; to: 0; duration: 300; easing.type: Easing.InQuad }
     }
     SequentialAnimation {
         id: inAnim
         property Item target
-        PauseAnimation { duration: 140 }
+        PauseAnimation { duration: 100 }
         ParallelAnimation {
-            NumberAnimation { target: inAnim.target; property: "scale"; to: 1; duration: 680; easing.type: Easing.OutBack; easing.overshoot: 1.25 }
-            NumberAnimation { target: inAnim.target; property: "rotation"; to: 0; duration: 680; easing.type: Easing.OutCubic }
-            NumberAnimation { target: inAnim.target; property: "opacity"; to: 1; duration: 220; easing.type: Easing.OutQuad }
+            NumberAnimation { target: inAnim.target; property: "scale"; to: 1; duration: 540; easing.type: Easing.OutBack; easing.overshoot: 1.25 }
+            NumberAnimation { target: inAnim.target; property: "rotation"; to: 0; duration: 540; easing.type: Easing.OutCubic }
+            NumberAnimation { target: inAnim.target; property: "opacity"; to: 1; duration: 180; easing.type: Easing.OutQuad }
         }
     }
 }

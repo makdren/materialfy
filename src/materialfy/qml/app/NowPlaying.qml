@@ -69,25 +69,57 @@ Item {
         forceActiveFocus()
     }
     function hide() {
-        // телефон: плеер сжимается в плашку мини-плеера (без «капли»)
-        if (Theme.mobile && open && collapseTarget && !Theme.reducedMotion && !Theme.lowPower) {
-            // с места (кнопка, «Назад») — ровная кривая: мягкий разгон и мягкое торможение у плашки;
-            // после свайпа — то же торможение с текущего места, время — по оставшемуся пути
-            collapseIn.easing.bezierCurve = collapse === 0 ? Theme.motion.smoothMove : Theme.motion.emphasizedDecelerate
-            if (collapse === 0)
-                _measure()
-            collapseBack.stop()
-            // та же длительность, что у раскрытия (820 мс); после свайпа — доля оставшегося пути
-            collapseIn.duration = Math.max(240, root._openMs * (1 - collapse))
-            collapseIn.restart()
+        // телефон: плеер уезжает вниз, как лист, а мини-плеер появляется сам (holdsMini), а не принимает
+        // в себя сжавшийся плеер. После свайпа — с места, где его отпустил палец, время — по оставшемуся пути
+        if (Theme.mobile && open && !Theme.reducedMotion && !Theme.lowPower) {
+            if (dismiss.running)
+                return
+            dropBack.stop()
+            dismissMove.duration = Math.max(140, 300 * (1 - Math.min(1, _dropY / Math.max(1, height))))
+            dismissMove.to = height
+            dismiss.restart()
             return
         }
         collapseIn.stop()
         collapseBack.stop()
-        _swipeClosing = collapse > 0   // недосвёрнутый плеер закрывается сразу, без «капли» из середины жеста
+        _swipeClosing = collapse > 0 || _dropY > 0   // недосвёрнутый плеер закрывается сразу, без «капли»
         open = false
         collapse = 0
+        _dropY = 0
         _swipeClosing = false
+    }
+
+    // ---- Закрытие на телефоне: лист вниз ----
+    // _dropY — сдвиг плеера вниз (палец или анимация). Мини-плеер скрыт, пока плеер открыт (holdsMini),
+    // и появляется с середины ухода — плеер уходит, плашка встаёт на место следом
+    property real _dropY: 0
+    property bool _miniReleased: false
+    readonly property bool holdsMini: open && !_miniReleased
+    transform: Translate { y: root._dropY }
+    ParallelAnimation {
+        id: dismiss
+        NumberAnimation {
+            id: dismissMove
+            target: root; property: "_dropY"
+            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedAccelerate
+        }
+        SequentialAnimation {
+            PauseAnimation { duration: dismissMove.duration * 0.45 }
+            ScriptAction { script: root._miniReleased = true }
+        }
+        onFinished: {
+            root._swipeClosing = true
+            root.open = false
+            root._dropY = 0
+            root._swipeClosing = false
+            root._miniReleased = false
+        }
+    }
+    NumberAnimation {
+        id: dropBack
+        target: root; property: "_dropY"; to: 0
+        duration: Theme.motion.spatialDefault
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.springDefault
     }
 
     // ---- Сворачивание в мини-плеер (телефон): свайп вниз ведёт его пальцем, кнопка и «Назад» — анимацией ----
@@ -97,7 +129,7 @@ Item {
     // этапы: верхняя панель гаснет первой (0…0,2), подписи и кнопки — следом (0,05…0,4), обложка — до конца
     readonly property real _detail: 1 - Math.max(0, Math.min(1, (collapse - 0.05) / 0.35))
     readonly property real _chrome: 1 - Math.max(0, Math.min(1, collapse / 0.2))
-    readonly property int _openMs: 820       // раскрытие плеера; сворачивание в мини-плеер — столько же
+    readonly property int _openMs: 660       // раскрытие плеера; сворачивание в мини-плеер — столько же
     property Item collapseTarget: null       // плашка мини-плеера
     property Item collapseCover: null        // её обложка
     property real collapse: 0
@@ -195,7 +227,8 @@ Item {
     }
 
     visible: reveal > 0
-    opacity: Theme.reducedMotion ? reveal : 1
+    // уезжая вниз, плеер немного тает — под ним уже видно приложение
+    opacity: (Theme.reducedMotion ? reveal : 1) * (1 - Math.min(1, _dropY / Math.max(1, height)) * 0.4)
     focus: open
     Keys.onEscapePressed: compact && sheetOpen ? sheetOpen = false : hide()
 
@@ -338,28 +371,26 @@ Item {
                 target: null
                 xAxis.enabled: false
                 // translation обнуляется раньше, чем приходит active=false: смещение и скорость запоминаем по ходу.
-                // Верх рамки идёт за пальцем: collapse = смещение / путь до плашки
+                // Плеер едет за пальцем вниз целиком, как лист
                 property real vy: 0
                 onTranslationChanged: {
-                    if (!active)
+                    if (!active || dismiss.running)
                         return
-                    root.collapse = Math.max(0, Math.min(1, translation.y / Math.max(1, root._target.y)))
-                    // рамка — от экрана до плашки; верх рамки идёт за пальцем
+                    root._dropY = Math.max(0, translation.y)
                     vy = centroid.velocity.y
                 }
                 onActiveChanged: {
                     if (active) {
                         vy = 0
-                        collapseIn.stop()
-                        collapseBack.stop()
-                        if (root.collapse === 0)
-                            root._measure()
+                        dropBack.stop()
                         return
                     }
-                    if (root.collapse > 0.25 || (vy > 900 && root.collapse > 0.03))
+                    if (dismiss.running)
+                        return
+                    if (root._dropY > root.height * 0.18 || (vy > 900 && root._dropY > 24))
                         root.hide()
                     else
-                        collapseBack.restart()
+                        dropBack.restart()
                 }
             }
         }
@@ -495,7 +526,7 @@ Item {
                     ]
                     DragHandler {
                         id: coverSwipe
-                        enabled: Theme.mobile && root.open && Player.hasTrack && root.collapse === 0
+                        enabled: Theme.mobile && root.open && Player.hasTrack && root.collapse === 0 && root._dropY === 0 && !dismiss.running
                         target: null
                         yAxis.enabled: false
                         // translation обнуляется раньше, чем приходит active=false: смещение и скорость запоминаем
@@ -566,7 +597,7 @@ Item {
                     target: left
                     property: "infoIn"
                     to: 1
-                    duration: 520
+                    duration: 420
                     easing.type: Easing.BezierSpline
                     easing.bezierCurve: Theme.motion.emphasizedDecelerate
                 }

@@ -43,7 +43,7 @@ IconButton {
     }
 
     property real _burst: 1             // 0 → 1 — ход всплеска; 1 — всплеска нет
-    NumberAnimation { id: burst; target: root; property: "_burst"; from: 0; to: 1; duration: 520; easing.type: Easing.OutCubic }
+    NumberAnimation { id: burst; target: root; property: "_burst"; from: 0; to: 1; duration: 440; easing.type: Easing.OutCubic }
     Item {
         anchors.centerIn: parent
         width: 0

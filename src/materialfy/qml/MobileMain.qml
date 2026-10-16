@@ -289,6 +289,7 @@ Window {
 
             MobileMiniPlayer {
                 id: miniPlayer
+                suppressed: nowPlaying.holdsMini
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom

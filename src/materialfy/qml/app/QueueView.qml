@@ -34,6 +34,15 @@ Item {
         }
         manualStart = queue.find("section", "manual")
         contextStart = queue.find("section", "context")
+        _refreshSections()
+    }
+    // Очередь обновляется диффом (удалить / переставить / вставить / заменить на месте), и на некоторых его
+    // сочетаниях ListView оставлял прежние заголовки секций: над играющим треком — «Далее», две плашки
+    // «Перетащите трек сюда». Переназначение section.property пересчитывает секции всех строк заново
+    property string _sectionRole: "section"
+    function _refreshSections() {
+        _sectionRole = ""
+        _sectionRole = "section"
     }
     Component.onCompleted: recount()
     Connections {
@@ -47,6 +56,8 @@ Item {
         target: root.queue
         function onCountChanged() { root.recount() }
         function onModelReset() { root.recount() }
+        // после каждого диффа, в том числе замены строк на месте, о которой queueChanged не сообщает
+        function onRowsChanged() { root.recount() }
     }
     // новый контекст — снова свёрнут
     readonly property string _contextUri: Player.contextUri
@@ -213,7 +224,7 @@ Item {
         // без reuseItems: замер на живой очереди показал регрессию — при частых диффах плеера
         // переклейка данных на переиспользуемые делегаты дороже обновления биндингов на месте
 
-        section.property: "section"
+        section.property: root._sectionRole
         section.criteria: ViewSection.FullString
         section.delegate: Column {
             id: sec

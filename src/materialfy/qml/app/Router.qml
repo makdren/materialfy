@@ -282,10 +282,10 @@ Item {
         const axis = kind === "fade" ? "y" : "x"
         // телефон: смена раздела в нижней навигации — короткий fade through, без долгого «доезда»
         const quick = kind === "fade" && Theme.mobile
-        inMove.duration = quick ? 300 : 560
-        inScale.duration = quick ? 300 : 560
-        outMove.duration = quick ? 200 : 300
-        outScale.duration = quick ? 200 : 300
+        inMove.duration = quick ? 260 : 440
+        inScale.duration = quick ? 260 : 440
+        outMove.duration = quick ? 170 : 240
+        outScale.duration = quick ? 170 : 240
         const d = kind === "forward" ? 140 : kind === "back" ? -140 : 72
         outFade.target = from
         outMove.target = from
@@ -326,16 +326,16 @@ Item {
     ParallelAnimation {
         id: anim
 
-        NumberAnimation { id: outFade; property: "opacity"; to: 0; duration: 160; easing.type: Easing.OutCubic }
+        NumberAnimation { id: outFade; property: "opacity"; to: 0; duration: 130; easing.type: Easing.OutCubic }
         NumberAnimation {
             id: outMove; duration: 300
             easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedAccelerate
         }
         NumberAnimation { id: outScale; property: "scale"; duration: 300; easing.type: Easing.OutCubic }
         SequentialAnimation {
-            PauseAnimation { duration: 60 }
+            PauseAnimation { duration: 40 }
             ParallelAnimation {
-                NumberAnimation { id: inFade; property: "opacity"; from: 0; to: 1; duration: 260; easing.type: Easing.OutCubic }
+                NumberAnimation { id: inFade; property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.OutCubic }
                 NumberAnimation {
                     id: inMove; to: 0; duration: 560
                     easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedDecelerate
