@@ -72,12 +72,35 @@ Item {
         open = false
     }
 
+    // Свайп вниз (телефон): плеер едет за пальцем 1:1; отпустили ниже порога или смахнули — уезжает за нижний
+    // край и закрывается без «капли»; иначе возвращается
+    property real dragY: 0
+    property bool _swipeClosing: false
+    NumberAnimation {
+        id: dragBack
+        target: root; property: "dragY"; to: 0
+        duration: Theme.motion.spatialDefault
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedDecelerate
+    }
+    NumberAnimation {
+        id: dragAway
+        target: root; property: "dragY"
+        duration: 200; easing.type: Easing.OutCubic
+        onFinished: {
+            root._swipeClosing = true
+            root.open = false
+            root.dragY = 0
+            root._swipeClosing = false
+        }
+    }
+
     visible: reveal > 0
     opacity: Theme.reducedMotion ? reveal : 1
     focus: open
     Keys.onEscapePressed: compact && sheetOpen ? sheetOpen = false : hide()
 
     Behavior on reveal {
+        enabled: !root._swipeClosing
         NumberAnimation {
             id: revealAnim
             // программный рендер — сразу: кадры раскрытия (два слоя и маска на весь экран) рисует процессор
@@ -125,7 +148,7 @@ Item {
         id: content
         anchors.fill: parent
         // свайп вниз тянет плеер за пальцем
-        transform: Translate { y: swipeDown.active ? Math.max(0, swipeDown.translation.y * 0.5) : 0 }
+        transform: Translate { y: root.dragY }
         opacity: Math.min(1, root.reveal / 0.12)
         layer.enabled: root.reveal < 1
         layer.effect: MultiEffect {
@@ -170,14 +193,26 @@ Item {
                 enabled: Theme.mobile && root.open && !(root.layoutCompact && root.sheetOpen)
                 target: null
                 xAxis.enabled: false
-                // translation обнуляется раньше, чем приходит active=false: смещение запоминаем по ходу жеста
-                property real lastY: 0
-                onTranslationChanged: if (active) lastY = translation.y
+                // translation обнуляется раньше, чем приходит active=false: смещение и скорость запоминаем по ходу
+                property real vy: 0
+                onTranslationChanged: {
+                    if (!active)
+                        return
+                    root.dragY = Math.max(0, translation.y)
+                    vy = centroid.velocity.y
+                }
                 onActiveChanged: {
                     if (active) {
-                        lastY = 0
-                    } else if (lastY > 120) {
-                        root.hide()
+                        vy = 0
+                        dragBack.stop()
+                        dragAway.stop()
+                        return
+                    }
+                    if (root.dragY > root.height * 0.22 || (vy > 900 && root.dragY > 24)) {
+                        dragAway.to = root.height
+                        dragAway.restart()
+                    } else {
+                        dragBack.restart()
                     }
                 }
             }

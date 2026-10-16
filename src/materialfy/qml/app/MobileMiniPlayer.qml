@@ -23,16 +23,60 @@ Item {
 
     PlayerProgress { id: playerProgress; active: root.visible }
 
-    // Плашка ездит за пальцем по горизонтали (переключение трека) и чуть вверх (раскрыть)
+    // Переключение свайпом: плашка едет за пальцем 1:1, после порога улетает за край, трек переключается,
+    // и плашка с новым треком въезжает с другой стороны (когда плеер сообщил о смене или через 1,2 с)
+    property real _dx: 0
+    property real _dy: 0
+    property int _dir: 0                     // -1 — следующий (уехала влево), 1 — предыдущий, 0 — нет
+    function _swipeAway(dir) {
+        MobileShell.haptic()
+        _dir = dir
+        settle.stop()
+        flyOut.to = dir * (root.width + 24)
+        flyOut.restart()
+    }
+    NumberAnimation {
+        id: flyOut
+        target: root; property: "_dx"
+        duration: 160; easing.type: Easing.InCubic
+        onFinished: {
+            if (root._dir < 0)
+                Player.next()
+            else
+                Player.previous()
+            // новый трек въедет с противоположной стороны
+            root._dx = -root._dir * (root.width * 0.35)
+            arrivalTimeout.restart()
+        }
+    }
+    NumberAnimation {
+        id: settle
+        target: root; property: "_dx"; to: 0
+        duration: Theme.motion.spatialDefault
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedDecelerate
+    }
+    NumberAnimation { id: settleY; target: root; property: "_dy"; to: 0; duration: Theme.motion.spatialFast; easing.type: Easing.OutCubic }
+    function _arrive() {
+        if (_dir === 0)
+            return
+        _dir = 0
+        arrivalTimeout.stop()
+        settle.restart()
+    }
+    Timer { id: arrivalTimeout; interval: 1200; onTriggered: root._arrive() }
+    Connections {
+        target: Player
+        function onTrackChanged() { root._arrive() }
+    }
+
     Item {
         id: card
         width: parent.width
         height: parent.height
-        x: swipe.active ? Math.max(-120, Math.min(120, swipe.translation.x * 0.6)) : 0
-        y: swipe.active ? Math.max(-24, Math.min(0, swipe.translation.y * 0.3)) : 0
-        Behavior on x { enabled: !swipe.active; NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.OutBack } }
-        Behavior on y { enabled: !swipe.active; NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.OutBack } }
-        opacity: 1 - Math.abs(x) / 240
+        x: root._dx
+        y: root._dy
+        // ждёт новый трек за краем — прозрачная; въезжая, проявляется
+        opacity: root._dir !== 0 && !flyOut.running ? 0 : 1 - Math.min(1, Math.abs(x) / root.width) * 0.7
 
         Rectangle {
             id: bg
@@ -185,23 +229,37 @@ Item {
             id: swipe
             target: null
             enabled: Player.hasTrack
-            // translation обнуляется раньше, чем приходит active=false: смещение запоминаем по ходу жеста
+            // translation обнуляется раньше, чем приходит active=false: смещение и скорость запоминаем по ходу
             property point last: Qt.point(0, 0)
-            onTranslationChanged: if (active) last = Qt.point(translation.x, translation.y)
+            property real vx: 0
+            onTranslationChanged: {
+                if (!active || root._dir !== 0)
+                    return
+                last = Qt.point(translation.x, translation.y)
+                vx = centroid.velocity.x
+                const horizontal = Math.abs(last.x) >= Math.abs(last.y)
+                root._dx = horizontal ? last.x : 0
+                root._dy = horizontal ? 0 : Math.max(-24, Math.min(0, last.y * 0.3))
+            }
             onActiveChanged: {
                 if (active) {
                     last = Qt.point(0, 0)
+                    vx = 0
+                    settle.stop()
+                    settleY.stop()
                     return
                 }
+                if (root._dir !== 0)
+                    return
                 const t = last
-                if (Math.abs(t.x) > 72 && Math.abs(t.x) > Math.abs(t.y)) {
-                    MobileShell.haptic()
-                    if (t.x < 0)
-                        Player.next()
-                    else
-                        Player.previous()
-                } else if (t.y < -40 && Math.abs(t.y) > Math.abs(t.x)) {
-                    root._open()
+                settleY.restart()
+                const flick = Math.abs(vx) > 900 && Math.abs(t.x) > 24
+                if ((Math.abs(t.x) > root.width * 0.28 || flick) && Math.abs(t.x) > Math.abs(t.y)) {
+                    root._swipeAway(t.x < 0 ? -1 : 1)
+                } else {
+                    settle.restart()
+                    if (t.y < -40 && Math.abs(t.y) > Math.abs(t.x))
+                        root._open()
                 }
             }
         }
