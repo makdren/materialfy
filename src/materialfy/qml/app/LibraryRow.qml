@@ -155,6 +155,7 @@ Item {
     HoverHandler { id: hover }
     TapHandler {
         acceptedButtons: Qt.RightButton
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad   // касание — не правый клик: у него нет кнопок, TapHandler принял бы любой тап
         onTapped: point => root.menuRequested(root.mapToItem(null, point.position.x, point.position.y))
     }
     StateLayer {
