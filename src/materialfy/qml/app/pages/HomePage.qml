@@ -156,9 +156,16 @@ Page {
                     && (Auth.playbackState === "none" || Auth.playbackState === "connecting")
         locked: page.signedIn && Radio.locked && !connecting
         loading: Radio.loading || connecting
+        // «Сейчас играет» — только если играет выбранная станция: выбор на орбите её ещё не запускает
         playing: Radio.active && Player.playing
+                 && (Radio.selected === "" || Player.contextUri === "spotify:station:" + Radio.selected.replace(/^spotify:/, ""))
         errorText: Radio.errorText
-        onPicked: uri => Radio.select(uri)
+        onPicked: uri => {
+            Radio.select(uri)
+            // телефон: тап по сиду сразу включает станцию (на компьютере — выбор, запуск большой кнопкой)
+            if (Theme.mobile)
+                Radio.play()
+        }
         onAddRequested: item => finder.open(item)
         onPlayClicked: Radio.play()
         onOpenList: page.router.push("radio", { seed: Radio.selected })
