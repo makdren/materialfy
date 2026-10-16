@@ -354,6 +354,9 @@ Item {
         readonly property real overshoot: 1.25
 
         readonly property var emphasized: [0.2, 0.0, 0.0, 1.0, 1.0, 1.0]
+        // ровное перемещение «из точки в точку» (плеер → мини-плеер): мягкий разгон и мягкое торможение,
+        // без рывка в середине, как у emphasized
+        readonly property var smoothMove: [0.4, 0.0, 0.2, 1.0, 1.0, 1.0]
         readonly property var emphasizedDecelerate: [0.05, 0.7, 0.1, 1.0, 1.0, 1.0]
         readonly property var emphasizedAccelerate: [0.3, 0.0, 0.8, 0.15, 1.0, 1.0]
         readonly property var standard: [0.2, 0.0, 0.0, 1.0, 1.0, 1.0]

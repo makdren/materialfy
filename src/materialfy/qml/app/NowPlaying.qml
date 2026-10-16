@@ -71,12 +71,13 @@ Item {
     function hide() {
         // телефон: плеер сжимается в плашку мини-плеера (без «капли»)
         if (Theme.mobile && open && collapseTarget && !Theme.reducedMotion && !Theme.lowPower) {
-            // с места (кнопка, «Назад») — плавный разгон и торможение; после свайпа — продолжение движения
-            collapseIn.easing.type = collapse === 0 ? Easing.InOutCubic : Easing.OutCubic
+            // с места (кнопка, «Назад») — ровная кривая: мягкий разгон и мягкое торможение у плашки;
+            // после свайпа — то же торможение с текущего места, время — по оставшемуся пути
+            collapseIn.easing.bezierCurve = collapse === 0 ? Theme.motion.smoothMove : Theme.motion.emphasizedDecelerate
             if (collapse === 0)
                 _measure()
             collapseBack.stop()
-            collapseIn.duration = Math.max(180, 420 * (1 - collapse))
+            collapseIn.duration = collapse === 0 ? 520 : Math.max(240, 460 * (1 - collapse))
             collapseIn.restart()
             return
         }
@@ -92,6 +93,9 @@ Item {
     // collapse 0…1: большая обложка уменьшается до обложки плашки и летит на её место (весь плеер — вместе с
     // ней, одним масштабом), рамка плеера стягивается от экрана к прямоугольнику плашки, углы скругляются;
     // в конце плеер растворяется в настоящей плашке под ним
+    // этапы: верхняя панель гаснет первой (0…0,2), подписи и кнопки — следом (0,05…0,4), обложка — до конца
+    readonly property real _detail: 1 - Math.max(0, Math.min(1, (collapse - 0.05) / 0.35))
+    readonly property real _chrome: 1 - Math.max(0, Math.min(1, collapse / 0.2))
     property Item collapseTarget: null       // плашка мини-плеера
     property Item collapseCover: null        // её обложка
     property real collapse: 0
@@ -127,6 +131,8 @@ Item {
     NumberAnimation {
         id: collapseIn
         target: root; property: "collapse"; to: 1
+        easing.type: Easing.BezierSpline
+        easing.bezierCurve: Theme.motion.smoothMove
         onFinished: {
             root._swipeClosing = true
             root.open = false
@@ -165,18 +171,22 @@ Item {
 
     // Подложка сворачивания: из экрана — в плашку мини-плеера (её цвет и скругление); фон плеера над ней гаснет
     Rectangle {
+        id: collapseCard
         visible: root.collapse > 0
         x: root._frame.x
         y: root._frame.y
         width: root._frame.width
         height: root._frame.height
-        radius: Theme.shape.large * root.collapse
+        // скругление набирается в начале: рамка сразу читается как карточка
+        radius: Theme.shape.large * Math.min(1, root.collapse * 4)
         readonly property color from: Theme.surface
         readonly property color to: Theme.surfaceContainerHighest
         color: Qt.rgba(from.r + (to.r - from.r) * root.collapse, from.g + (to.g - from.g) * root.collapse,
                        from.b + (to.b - from.b) * root.collapse, 1)
         opacity: 1 - Math.max(0, (root.collapse - 0.85) / 0.15)
     }
+
+    Elevation { target: collapseCard; level: 3; visible: root.collapse > 0 }
 
     // Маска сворачивания (в координатах содержимого): окно у обложки со скруглением плашки
     Item {
@@ -189,7 +199,7 @@ Item {
             y: root._window.y
             width: root._window.width
             height: root._window.height
-            radius: Theme.shape.large * root.collapse / root._s
+            radius: Theme.shape.large * Math.min(1, root.collapse * 4) / root._s
             color: "white"
         }
     }
@@ -310,6 +320,7 @@ Item {
         // Верхняя панель: свернуть + переключатель очередь/текст (над правой колонкой)
         RowLayout {
             id: topRow
+            opacity: root._chrome           // сворачивание: панель гаснет первой
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
@@ -424,7 +435,8 @@ Item {
                     Layout.preferredHeight: s
                     Layout.bottomMargin: root.layoutCompact ? 12 : 20
                     source: Player.coverLarge !== "" ? Player.coverLarge : Player.cover
-                    restShape: Player.playing ? "cookie12" : "square"
+                    // сворачивание: обложка заранее принимает форму обложки мини-плеера
+                    restShape: Player.playing ? "cookie12" : root.collapse > 0.2 ? "softSquare" : "square"
                     direction: Player.direction
                     pulse: Settings.coverPulse && Player.isLocal === true ? left.beat : 0
                     spinning: Settings.coverSpin && Player.playing && root.open && Player.isLocal === true
@@ -480,7 +492,7 @@ Item {
                     text: Player.title
                     type: root.layoutCompact ? "headlineSmall" : "headlineMedium"
                     weight: 700
-                    opacity: left.infoIn
+                    opacity: left.infoIn * root._detail
                     transform: Translate { y: (1 - left.infoIn) * 14 }
                 }
                 LinkLabel {
@@ -492,7 +504,7 @@ Item {
                     linkEnabled: Player.isEpisode ? (Player.track.showId ?? "") !== "" : (Player.track.artistRefs ?? []).length > 0
                     previewArtistId: !Player.isEpisode && (Player.track.artistRefs ?? []).length === 1 ? Player.track.artistRefs[0].id : ""
                     onClicked: Player.isEpisode ? Catalog.openShow(Player.track.showId ?? "") : Catalog.openArtists(Player.track.artistRefs ?? [])
-                    opacity: Math.max(0, left.infoIn * 1.3 - 0.3)    // чуть позже названия
+                    opacity: Math.max(0, left.infoIn * 1.3 - 0.3) * root._detail    // чуть позже названия
                     transform: Translate { y: (1 - left.infoIn) * 18 }
                     text: Player.artist
                     type: "titleMedium"
@@ -506,7 +518,7 @@ Item {
                     // у выпуска подкаста и трека без альбома ссылки нет
                     linkEnabled: (Player.track.albumId ?? "") !== ""
                     onClicked: Catalog.openAlbum(Player.track.albumId ?? "")
-                    opacity: Math.max(0, left.infoIn * 1.3 - 0.3)    // чуть позже названия
+                    opacity: Math.max(0, left.infoIn * 1.3 - 0.3) * root._detail    // чуть позже названия
                     transform: Translate { y: (1 - left.infoIn) * 18 }
                     text: Player.album + (Player.codec !== "" && Player.isLocal === true ? "  ·  " + Player.codec : "")
                     type: "bodySmall"
@@ -517,6 +529,7 @@ Item {
                 readonly property alias progress: playerProgress.value
                 PlayerProgress { id: playerProgress; active: bigSeek.visible && !bigSeek.dragging }
                 RowLayout {
+                    opacity: root._detail   // сворачивание в мини-плеер: подписи и кнопки гаснут раньше обложки
                     Layout.fillWidth: true
                     Layout.topMargin: 8
                     spacing: 12
@@ -545,6 +558,7 @@ Item {
 
                 // Кнопки
                 RowLayout {
+                    opacity: root._detail   // сворачивание в мини-плеер: подписи и кнопки гаснут раньше обложки
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 4
                     // узкий телефон (< 380): 4 × 56 + 72 с промежутками по 12 шире колонки — распирали весь экран
@@ -581,6 +595,7 @@ Item {
 
                 // Не рекомендовать (радио) · устройство · громкость · лайк или закладка выпуска
                 RowLayout {
+                    opacity: root._detail   // сворачивание в мини-плеер: подписи и кнопки гаснут раньше обложки
                     id: volumeRow
                     // громкость играющего устройства; у части устройств её меняют только на них самих
                     readonly property bool locked: Player.remote === true && Player.canSetVolume === false
@@ -644,6 +659,7 @@ Item {
                     }
                 }
                 Label {
+                    opacity: root._detail   // сворачивание в мини-плеер: подписи и кнопки гаснут раньше обложки
                     visible: volumeRow.locked
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: -4
@@ -654,6 +670,7 @@ Item {
 
                 // Пульт: «Играет на … · Слушать здесь», устройство пропало — «Продолжить здесь?»
                 ConnectBanner {
+                    opacity: root._detail   // сворачивание в мини-плеер: подписи и кнопки гаснут раньше обложки
                     id: npBanner
                     Layout.fillWidth: true
                     Layout.maximumWidth: 460
