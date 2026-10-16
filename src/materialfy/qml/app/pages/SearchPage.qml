@@ -82,21 +82,14 @@ Page {
         }
     }
 
-    Flow {
+    ChipRow {
         Layout.fillWidth: true
         Layout.maximumWidth: 720
         Layout.alignment: Qt.AlignHCenter
-        spacing: 8
-        Repeater {
-            model: page.filters
-            Chip {
-                required property var modelData
-                required property int index
-                text: modelData.text
-                selected: page.filter === index
-                onClicked: page.filter = index
-            }
-        }
+        bleed: page.sideMargin
+        model: page.filters
+        current: page.filter
+        onPicked: key => page.filter = key
     }
 
     // ---- Состояния ----

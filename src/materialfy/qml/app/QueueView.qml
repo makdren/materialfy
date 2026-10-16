@@ -290,6 +290,7 @@ Item {
                 track: root.rowData(cell.index, cell.model.uid, cell.model.title)
                 current: cell.sec === "current"
                 draggable: cell.m >= 0 && Player.queueReorderable
+                reserveHandle: Player.queueReorderable === true
                 dragging: cell.lifted && root.dragFrom >= 0
                 activeFocusOnTab: true
                 onActivated: Player.playQueueRow(cell.model.uid)

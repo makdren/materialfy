@@ -360,5 +360,10 @@ Item {
         readonly property var emphasizedDecelerate: [0.05, 0.7, 0.1, 1.0, 1.0, 1.0]
         readonly property var emphasizedAccelerate: [0.3, 0.0, 0.8, 0.15, 1.0, 1.0]
         readonly property var standard: [0.2, 0.0, 0.0, 1.0, 1.0, 1.0]
+        // Пружины MD3 Expressive в виде кривых (токены motion-scheme expressive): быстрая — для мелких
+        // элементов (индикатор, иконка, чип), обычная — для крупных; эффекты — без перелёта
+        readonly property var springFast: [0.42, 1.67, 0.21, 0.90, 1.0, 1.0]
+        readonly property var springDefault: [0.38, 1.21, 0.22, 1.00, 1.0, 1.0]
+        readonly property var effects: [0.31, 0.94, 0.34, 1.00, 1.0, 1.0]
     }
 }

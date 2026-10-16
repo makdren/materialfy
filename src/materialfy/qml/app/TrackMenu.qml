@@ -152,6 +152,8 @@ Item {
     Menu {
         id: menu
         anchors.fill: parent
+        header: root._id !== "" || (root.track.uri ?? "") !== ""
+                ? { title: root.track.title ?? "", subtitle: root.track.artists ?? "", image: root.track.cover ?? "" } : null
         onTriggered: (id, item) => {
             if (id.startsWith("mini:"))
                 root._miniAction(id)

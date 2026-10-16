@@ -16,6 +16,11 @@ Item {
     visible: opacity > 0.01
     opacity: Player.hasTrack ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: Theme.motion.effectsDefault } }
+    // появляется, выезжая снизу с лёгким пружинным перелётом; уходит вниз
+    transform: Translate {
+        y: Player.hasTrack ? 0 : 32
+        Behavior on y { NumberAnimation { duration: Theme.motion.spatialDefault; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.springDefault } }
+    }
 
     function _open() {
         root.openNowPlaying(coverBox.mapToItem(null, coverBox.width / 2, coverBox.height / 2))
@@ -64,10 +69,35 @@ Item {
         settle.restart()
     }
     Timer { id: arrivalTimeout; interval: 1200; onTriggered: root._arrive() }
+    // Подписи нового трека проявляются заново, чуть снизу (при свайпе плашка и так въезжает целиком)
+    property real _infoIn: 1
+    property string _lastTrack: Player.trackId
+    NumberAnimation {
+        id: infoAnim
+        target: root; property: "_infoIn"; to: 1
+        duration: Theme.motion.spatialDefault
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedDecelerate
+    }
     Connections {
         target: Player
-        function onTrackChanged() { root._arrive() }
+        function onTrackChanged() {
+            if (root._dir === 0 && root._lastTrack !== Player.trackId && root.visible && Theme.reducedMotion !== true) {
+                root._infoIn = 0
+                infoAnim.restart()
+            }
+            root._lastTrack = Player.trackId
+            root._arrive()
+        }
+        // play/pause: иконка коротко пружинит (у playing общий сигнал stateChanged — с буферизацией)
+        function onStateChanged() {
+            if (root._wasPlaying === Player.playing)
+                return
+            root._wasPlaying = Player.playing
+            if (Theme.reducedMotion !== true)
+                playPop.restart()
+        }
     }
+    property bool _wasPlaying: Player.playing
 
     Item {
         id: card
@@ -75,6 +105,9 @@ Item {
         height: parent.height
         x: root._dx
         y: root._dy
+        // нажатие чуть поджимает плашку — отклик сразу под пальцем, до открытия плеера
+        scale: cardTap.pressed && !swipe.active ? 0.97 : 1
+        Behavior on scale { NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.springFast } }
         // ждёт новый трек за краем — прозрачная; въезжая, проявляется
         opacity: root._dir !== 0 && !flyOut.running ? 0 : 1 - Math.min(1, Math.abs(x) / root.width) * 0.7
 
@@ -114,6 +147,7 @@ Item {
         }
 
         StateLayer {
+            id: cardTap
             anchors.fill: parent
             radius: Theme.shape.large
             enabled: Player.hasTrack
@@ -160,6 +194,8 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 0
+                opacity: root._infoIn
+                transform: Translate { y: (1 - root._infoIn) * 8 }
                 Label {
                     Layout.fillWidth: true
                     text: Player.title
@@ -200,6 +236,7 @@ Item {
                 implicitWidth: 48
                 implicitHeight: 48
                 IconButton {
+                    id: playToggle
                     anchors.centerIn: parent
                     icon: Player.playing ? "pause" : "play_arrow"
                     iconSize: 30
@@ -207,6 +244,11 @@ Item {
                     iconColor: Theme.fgSurface
                     enabled: Player.hasTrack
                     onClicked: Player.togglePlay()
+                }
+                SequentialAnimation {
+                    id: playPop
+                    NumberAnimation { target: playToggle; property: "scale"; to: 0.78; duration: 70; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: playToggle; property: "scale"; to: 1; duration: Theme.motion.spatialFast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.springFast }
                 }
                 LoadingIndicator {
                     anchors.centerIn: parent

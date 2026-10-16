@@ -39,26 +39,40 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
+                // Выбор раздела: пилюля раскрывается от центра с пружинным перелётом, иконка коротко
+                // «подпрыгивает» (MD3 Expressive); нажатие чуть поджимает иконку
+                onActiveChanged: if (active && Theme.reducedMotion !== true) pop.restart()
+                SequentialAnimation {
+                    id: pop
+                    NumberAnimation { target: icon; property: "popScale"; to: 1.18; duration: 90; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: icon; property: "popScale"; to: 1; duration: Theme.motion.spatialFast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.springFast }
+                }
+
                 Rectangle {
                     id: pill
                     anchors.horizontalCenter: parent.horizontalCenter
                     y: 12
                     height: 32
-                    width: tab.active ? 64 : 32
+                    width: tab.active ? 64 : 24
                     radius: height / 2
                     color: Theme.secondaryContainer
                     opacity: tab.active ? 1 : 0
-                    Behavior on width { NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedDecelerate } }
+                    Behavior on width { NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.springFast } }
                     Behavior on opacity { NumberAnimation { duration: Theme.motion.effectsFast } }
                 }
                 Icon {
+                    id: icon
+                    property real popScale: 1
                     anchors.centerIn: pill
                     name: tab.modelData.icon
                     size: 24
                     fill: tab.active ? 1 : 0
                     weight: tab.active ? 500 : 400
                     color: tab.active ? Theme.fgSecondaryContainer : Theme.fgSurfaceVariant
+                    scale: popScale * (tapArea.pressed ? 0.88 : 1)
                     Behavior on fill { NumberAnimation { duration: Theme.motion.effectsDefault } }
+                    Behavior on color { enabled: !Theme.transitioning; ColorAnimation { duration: Theme.motion.effectsDefault } }
+                    Behavior on scale { enabled: !pop.running; NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.springFast } }
                 }
                 Label {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -73,6 +87,7 @@ Rectangle {
                     minimumPixelSize: 9
                     weight: tab.active ? 700 : 500
                     color: tab.active ? Theme.fgSurface : Theme.fgSurfaceVariant
+                    Behavior on color { enabled: !Theme.transitioning; ColorAnimation { duration: Theme.motion.effectsDefault } }
                 }
                 // Касание — вся высота колонки; волна — на месте пилюли, как у системной навигации
                 Rectangle {

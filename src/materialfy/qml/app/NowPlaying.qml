@@ -102,6 +102,51 @@ Item {
     property Item collapseCover: null        // её обложка
     property real collapse: 0
     property bool _swipeClosing: false
+
+    // Телефон: свайп обложки влево/вправо — следующий/предыдущий трек (как в мини-плеере). Обложка едет за
+    // пальцем, после порога улетает за край, трек переключается, и новая обложка въезжает с другой стороны —
+    // когда она загрузилась (bigCover.swapped) или через 1,5 с
+    property real _coverDx: 0
+    property int _coverDir: 0                // -1 — следующий (уехала влево), 1 — предыдущий, 0 — нет
+    function _coverSwipeAway(dir) {
+        MobileShell.haptic()
+        _coverDir = dir
+        coverSettle.stop()
+        coverFlyOut.to = dir * (width * 0.5 + bigCover.width)
+        coverFlyOut.restart()
+    }
+    function _coverArrive() {
+        if (_coverDir === 0 || coverFlyOut.running)
+            return
+        _coverDir = 0
+        coverArrival.stop()
+        coverSettle.restart()
+    }
+    NumberAnimation {
+        id: coverFlyOut
+        target: root; property: "_coverDx"
+        duration: 180; easing.type: Easing.InCubic
+        onFinished: {
+            if (root._coverDir < 0)
+                Player.next()
+            else
+                Player.previous()
+            root._coverDx = -root._coverDir * bigCover.width * 0.45
+            coverArrival.restart()
+        }
+    }
+    NumberAnimation {
+        id: coverSettle
+        target: root; property: "_coverDx"; to: 0
+        duration: Theme.motion.spatialDefault
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.springDefault
+    }
+    Timer { id: coverArrival; interval: 1500; onTriggered: root._coverArrive() }
+    Connections {
+        target: Player
+        // обложка та же (трек из того же альбома) — подмены не будет, въезжаем сразу
+        function onTrackChanged() { Qt.callLater(() => { if (!bigCover.pending) root._coverArrive() }) }
+    }
     // большая обложка при collapse = 0: центр и сторона (в координатах плеера)
     property point _bc: Qt.point(width / 2, height / 3)
     property real _bs: 300
@@ -440,7 +485,45 @@ Item {
                     // сворачивание: обложка заранее принимает форму обложки мини-плеера
                     restShape: Player.playing ? "cookie12" : root.collapse > 0.2 ? "softSquare" : "square"
                     direction: Player.direction
-                    pulse: Settings.coverPulse && Player.isLocal === true ? left.beat : 0
+                    instantSwap: root._coverDir !== 0
+                    onSwapped: root._coverArrive()
+                    // свайп: едет за пальцем с лёгким наклоном и тает к краю; ждёт новую обложку за краем невидимой
+                    opacity: root._coverDir !== 0 && !coverFlyOut.running ? 0 : 1 - Math.min(1, Math.abs(root._coverDx) / (width * 1.2)) * 0.6
+                    transform: [
+                        Translate { x: root._coverDx },
+                        Rotation { origin.x: bigCover.width / 2; origin.y: bigCover.height; angle: root._coverDx / Math.max(1, bigCover.width) * 10 }
+                    ]
+                    DragHandler {
+                        id: coverSwipe
+                        enabled: Theme.mobile && root.open && Player.hasTrack && root.collapse === 0
+                        target: null
+                        yAxis.enabled: false
+                        // translation обнуляется раньше, чем приходит active=false: смещение и скорость запоминаем
+                        property real lastX: 0
+                        property real vx: 0
+                        onTranslationChanged: {
+                            if (!active || root._coverDir !== 0)
+                                return
+                            lastX = translation.x
+                            vx = centroid.velocity.x
+                            root._coverDx = lastX
+                        }
+                        onActiveChanged: {
+                            if (active) {
+                                lastX = 0
+                                vx = 0
+                                coverSettle.stop()
+                                return
+                            }
+                            if (root._coverDir !== 0)
+                                return
+                            const flick = Math.abs(vx) > 900 && Math.abs(lastX) > 24
+                            if (Math.abs(lastX) > bigCover.width * 0.3 || flick)
+                                root._coverSwipeAway(lastX < 0 ? -1 : 1)
+                            else
+                                coverSettle.restart()
+                        }
+                    }
                     spinning: Settings.coverSpin && Player.playing && root.open && Player.isLocal === true
                     DeviceBadge {
                         anchors.right: parent.right

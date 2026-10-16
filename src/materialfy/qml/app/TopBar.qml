@@ -99,15 +99,21 @@ Item {
             Behavior on opacity { NumberAnimation { duration: Theme.motion.effectsDefault } }
         }
 
-        // Кнопки страницы (поиск по библиотеке, сортировка, вид) — page.toolbar: Component
+        // Кнопки страницы (поиск по библиотеке, сортировка, вид) — page.toolbar: Component.
+        // Выгруженный Loader сохраняет implicitWidth прежних кнопок: без явной ширины заголовок следующей
+        // страницы обрезался («Лю…»), хотя справа пусто. Скрытый — ещё и без интервала раскладки.
         Loader {
             Layout.alignment: Qt.AlignVCenter
+            Layout.preferredWidth: item ? item.implicitWidth : 0
+            visible: active
             active: !!root.page && !!root.page.toolbar
             sourceComponent: root.page ? root.page.toolbar ?? null : null
         }
 
         Loader {
             Layout.alignment: Qt.AlignVCenter
+            Layout.preferredWidth: item ? item.implicitWidth : 0
+            visible: active
             active: root.trailing !== null
             sourceComponent: root.trailing
         }

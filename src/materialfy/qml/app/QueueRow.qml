@@ -11,6 +11,8 @@ Item {
     property var track: ({})              // строка Player.queue (QUEUE_KEYS)
     property bool current: false
     property bool draggable: false
+    // место под ручку: только когда очередь вообще можно переставлять — иначе пустые 32 px слева у каждой строки
+    property bool reserveHandle: true
     property bool dragging: false
     property bool compact: false
     // на телефоне ручка и «⋯» видны всегда: наведения нет
@@ -65,13 +67,14 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 2
+        anchors.leftMargin: root.reserveHandle ? 2 : 10
         anchors.rightMargin: 10
         spacing: 10
         opacity: (root.track.available ?? true) ? 1 : Theme.stateLayer.disabledContent
 
         Item {
             id: handle
+            visible: root.reserveHandle
             Layout.preferredWidth: 22
             Layout.fillHeight: true
             Icon {

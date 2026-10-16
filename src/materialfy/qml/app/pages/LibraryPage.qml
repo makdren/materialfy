@@ -386,43 +386,33 @@ Item {
                 }
 
                 // Разделы
-                Flow {
+                ChipRow {
                     visible: !page.inFolder
                     Layout.fillWidth: true
-                    spacing: 8
-                    Repeater {
-                        model: [
-                            { id: "playlists", text: I18n.t("Playlists"), n: Library.playlists.count },
-                            { id: "albums", text: I18n.t("Albums"), n: Library.albums.count },
-                            { id: "artists", text: I18n.t("Artists"), n: Library.artists.count },
-                            { id: "shows", text: I18n.t("Podcasts"), n: Library.shows.count }
-                        ]
-                        Chip {
-                            required property var modelData
-                            text: modelData.text + (modelData.n > 0 ? "  " + modelData.n : "")
-                            selected: page.kind === modelData.id
-                            onClicked: { page.kind = modelData.id; page.owner = "all" }
-                        }
-                    }
+                    bleed: page.margin
+                    keyRole: "id"
+                    model: [
+                        { id: "playlists", text: I18n.t("Playlists"), n: Library.playlists.count },
+                        { id: "albums", text: I18n.t("Albums"), n: Library.albums.count },
+                        { id: "artists", text: I18n.t("Artists"), n: Library.artists.count },
+                        { id: "shows", text: I18n.t("Podcasts"), n: Library.shows.count }
+                    ].map(e => Object.assign(e, { text: e.text + (e.n > 0 ? "  " + e.n : "") }))
+                    current: page.kind
+                    onPicked: key => { page.kind = key; page.owner = "all" }
                 }
                 // Владелец (только плейлисты)
-                Flow {
+                ChipRow {
                     visible: !page.inFolder && page.kind === "playlists"
                     Layout.fillWidth: true
-                    spacing: 8
-                    Repeater {
-                        model: [
-                            { id: "all", text: I18n.t("All") }, { id: "mine", text: I18n.t("Mine") },
-                            { id: "followed", text: I18n.t("Followed") }, { id: "collab", text: I18n.t("Collaborative") }
-                        ]
-                        Chip {
-                            required property var modelData
-                            implicitHeight: 28
-                            text: modelData.text
-                            selected: page.owner === modelData.id
-                            onClicked: page.owner = modelData.id
-                        }
-                    }
+                    bleed: page.margin
+                    chipHeight: 28
+                    keyRole: "id"
+                    model: [
+                        { id: "all", text: I18n.t("All") }, { id: "mine", text: I18n.t("Mine") },
+                        { id: "followed", text: I18n.t("Followed") }, { id: "collab", text: I18n.t("Collaborative") }
+                    ]
+                    current: page.owner
+                    onPicked: key => page.owner = key
                 }
 
                 // Явная сортировка догружает страницы

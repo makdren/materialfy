@@ -271,7 +271,9 @@ Page {
                           : I18n.t("Sign in to see your library and control playback")
                     type: "bodyMedium"
                     color: Theme.fgSurfaceVariant
-                    wrapMode: Text.WordWrap
+                    // spotify:user:<id> — одно длинное «слово»: по словам его не перенести, и на телефоне
+                    // строка уходила за край карточки
+                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     elide: Text.ElideNone
                 }
                 StatusChip {

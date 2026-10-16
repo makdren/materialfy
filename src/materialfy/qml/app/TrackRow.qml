@@ -69,6 +69,14 @@ Item {
 
     implicitHeight: 64
 
+    component ExplicitMark: Rectangle {
+        implicitWidth: 16
+        implicitHeight: 16
+        radius: 4
+        color: Theme.surfaceContainerHighest
+        Label { anchors.centerIn: parent; text: "E"; type: "labelSmall"; color: Theme.fgSurfaceVariant }
+    }
+
     function trackData() {
         if (track)
             return track
@@ -234,8 +242,9 @@ Item {
             }
         }
 
+        // телефон: номер рядом с обложкой лишний — его 40 px нужнее названию (как в Spotify)
         Label {
-            visible: root.number > 0
+            visible: root.number > 0 && !(Theme.mobile && root.cover !== "")
             Layout.preferredWidth: 28
             text: root.number
             type: "bodyMedium"
@@ -276,24 +285,23 @@ Item {
                     type: "bodyLarge"
                     color: Theme.fgSurfaceVariant
                 }
-                Rectangle {
-                    visible: root.explicit
-                    implicitWidth: 16
-                    implicitHeight: 16
-                    radius: 4
-                    color: Theme.surfaceContainerHighest
-                    Label { anchors.centerIn: parent; text: "E"; type: "labelSmall"; color: Theme.fgSurfaceVariant }
-                }
+                ExplicitMark { visible: root.explicit && !Theme.mobile }
                 Item { Layout.fillWidth: true }
             }
-            LinkLabel {
+            // телефон: «E» — перед исполнителями, как в Spotify: строке названия нужна вся ширина
+            RowLayout {
                 Layout.fillWidth: true
-                text: root.artists
-                type: "bodyMedium"
-                color: Theme.fgSurfaceVariant
-                linkEnabled: (root.artistRefs ?? []).length > 0
-                previewArtistId: (root.artistRefs ?? []).length === 1 ? root.artistRefs[0].id : ""
-                onClicked: Catalog.openArtists(root.artistRefs)
+                spacing: 6
+                ExplicitMark { visible: root.explicit && Theme.mobile }
+                LinkLabel {
+                    Layout.fillWidth: true
+                    text: root.artists
+                    type: "bodyMedium"
+                    color: Theme.fgSurfaceVariant
+                    linkEnabled: (root.artistRefs ?? []).length > 0
+                    previewArtistId: (root.artistRefs ?? []).length === 1 ? root.artistRefs[0].id : ""
+                    onClicked: Catalog.openArtists(root.artistRefs)
+                }
             }
         }
 

@@ -14,6 +14,10 @@ Item {
     property real pulse: 0
     property bool spinning: false
     property int direction: 1              // +1 — вперёд по очереди, -1 — назад: куда вращаться
+    // обложку унёс свайп (NowPlaying): новая встаёт на место сразу, без морфа — въезд анимирует свайп
+    property bool instantSwap: false
+    readonly property bool pending: _pending
+    signal swapped()
 
     property int _front: 0
     property bool _pending: false
@@ -50,6 +54,19 @@ Item {
         outAnim.complete()
         inAnim.complete()
         const oldL = _layers[_front], newL = _layers[1 - _front]
+        if (instantSwap) {
+            newL.jumpTo(restShape)
+            newL.shape = Qt.binding(() => root.restShape)
+            newL.scale = 1
+            newL.rotation = 0
+            newL.opacity = 1
+            newL.z = 1
+            oldL.z = 0
+            oldL.opacity = 0
+            _front = 1 - _front
+            swapped()
+            return
+        }
         newL.jumpTo("flower8")
         newL.scale = 0.2
         newL.rotation = 120 * direction
@@ -64,6 +81,7 @@ Item {
         newL.shape = Qt.binding(() => root.restShape)   // морф цветок → своя фигура
         outAnim.start()
         inAnim.start()
+        swapped()
     }
 
     component Layer: MorphImage {

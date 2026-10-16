@@ -9,6 +9,8 @@ Item {
     id: root
 
     property var items: []
+    // шапка листа — о чём меню: { title, subtitle, image } (трек: обложка, название, исполнители); null — без неё
+    property var header: null
     // вершина стека — показанный список: [{ items, title, parentIndex }]
     property var _levels: []
     readonly property var _current: _levels.length ? _levels[_levels.length - 1] : { items: [], title: "", parentIndex: -1 }
@@ -138,6 +140,50 @@ Item {
                 width: flick.width
                 bottomPadding: 8
 
+                // Шапка: какой трек — без неё по листу на весь экран не понять, к чему пункты. В подменю — нет
+                Item {
+                    visible: root.header !== null && root._levels.length === 1
+                    width: parent.width
+                    height: visible ? 64 : 0
+                    MorphImage {
+                        x: 24
+                        width: 48
+                        height: 48
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: (root.header?.image ?? "") !== ""
+                        source: root.header?.image ?? ""
+                        shape: "softSquare"
+                        fallbackTitle: root.header?.title ?? ""
+                    }
+                    Column {
+                        x: (root.header?.image ?? "") !== "" ? 88 : 24
+                        width: parent.width - x - 24
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
+                        Label {
+                            width: parent.width
+                            text: root.header?.title ?? ""
+                            type: "titleMedium"
+                            weight: 600
+                        }
+                        Label {
+                            width: parent.width
+                            visible: text !== ""
+                            text: root.header?.subtitle ?? ""
+                            type: "bodyMedium"
+                            color: Theme.fgSurfaceVariant
+                        }
+                    }
+                }
+                Rectangle {
+                    visible: root.header !== null && root._levels.length === 1
+                    x: 24
+                    width: parent.width - 48
+                    height: visible ? 1 : 0
+                    color: Theme.outlineVariant
+                    opacity: 0.6
+                }
+
                 // Подменю: «‹ Добавить в плейлист»
                 Item {
                     visible: root._levels.length > 1
@@ -195,6 +241,11 @@ Item {
 
                         width: column.width
                         height: isSeparator ? 17 : 52
+                        // открытие: пункты проявляются каскадом снизу (от хода листа, без своих таймеров);
+                        // при закрытии лист уезжает целиком
+                        readonly property real _t: root.opened ? Math.max(0, Math.min(1, (root.progress - Math.min(index, 10) * 0.04) / 0.55)) : 1
+                        opacity: _t
+                        transform: Translate { y: (1 - row._t) * 16 }
 
                         Rectangle {
                             visible: row.isSeparator

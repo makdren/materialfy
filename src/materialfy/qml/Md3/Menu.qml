@@ -14,6 +14,8 @@ Item {
     id: root
 
     property var items: []
+    // телефон: шапка нижнего листа { title, subtitle, image } (см. SheetMenu.header)
+    property var header: null
     readonly property bool opened: mainPopup.visible || (sheet.item !== null && sheet.item.opened)
 
     onOpenedChanged: opened ? BackStack.push(root) : BackStack.pop(root)
@@ -71,6 +73,7 @@ Item {
         anchors.fill: parent
         z: 3000
         sourceComponent: SheetMenu {
+            header: root.header
             onPicked: index => root.picked(index)
             onTriggered: (id, item) => root.triggered(id, item)
         }
