@@ -75,7 +75,7 @@ Item {
             if (dismiss.running)
                 return
             dropBack.stop()
-            dismissMove.duration = Math.max(140, 300 * (1 - Math.min(1, _dropY / Math.max(1, height))))
+            dismissMove.duration = Math.max(140, 240 * (1 - Math.min(1, _dropY / Math.max(1, height))))
             dismissMove.to = height
             dismiss.restart()
             return
@@ -101,7 +101,9 @@ Item {
         NumberAnimation {
             id: dismissMove
             target: root; property: "_dropY"
-            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedAccelerate
+            // трогается сразу (у emphasizedAccelerate первые ~100 мс почти стоят — после нажатия казалось,
+            // что плеер медлит) и разгоняется к краю
+            easing.type: Easing.BezierSpline; easing.bezierCurve: [0.3, 0.15, 0.9, 0.7, 1.0, 1.0]
         }
         SequentialAnimation {
             PauseAnimation { duration: dismissMove.duration * 0.45 }
