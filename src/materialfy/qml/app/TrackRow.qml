@@ -117,9 +117,47 @@ Item {
     readonly property bool _compactAdded: width < 600
     readonly property real _editT: editable ? 1 : 0
 
+    // ---- Телефон: свайп вправо — «в очередь» (как в Spotify). Строка едет за пальцем, под ней значок;
+    // после порога отпустить — трек встаёт в очередь (играет следующим после уже добавленных) ----
+    property real _swipeX: 0
+    readonly property real _queueAt: 88
+    readonly property bool _queueArmed: _swipeX >= _queueAt
+    on_QueueArmedChanged: if (queueSwipe.active) MobileShell.haptic()
+    NumberAnimation {
+        id: swipeBack
+        target: root; property: "_swipeX"; to: 0
+        duration: Theme.motion.spatialDefault
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedDecelerate
+    }
+    Item {
+        id: queueReveal
+        visible: root._swipeX > 0
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: Math.max(0, root._swipeX)
+        clip: true
+        Rectangle {
+            anchors.fill: parent
+            radius: Theme.shape.large
+            color: root._queueArmed ? Theme.primary : Theme.surfaceContainerHighest
+            Behavior on color { ColorAnimation { duration: Theme.motion.effectsFast } }
+        }
+        Icon {
+            anchors.verticalCenter: parent.verticalCenter
+            x: Math.min(24, Math.max(8, (parent.width - size) / 2))
+            name: "add_to_queue"
+            size: 24
+            color: root._queueArmed ? Theme.fgPrimary : Theme.fgSurfaceVariant
+            scale: root._queueArmed ? 1.15 : 1
+            Behavior on scale { NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.OutBack } }
+        }
+    }
+
     Rectangle {
         id: bg
         anchors.fill: parent
+        transform: Translate { x: root._swipeX }
         radius: Theme.shape.large
         color: root.dragging ? Theme.surfaceContainerHighest
              : root.current && !root.editable ? Qt.alpha(Theme.primary, 0.12) : "transparent"
@@ -153,6 +191,7 @@ Item {
 
     RowLayout {
         anchors.fill: parent
+        transform: Translate { x: root._swipeX }
         anchors.leftMargin: (Theme.mobile ? 8 : 12) - 8 * root._editT
         anchors.rightMargin: Theme.mobile ? 0 : 16
         spacing: Theme.mobile ? 12 : 16
@@ -388,6 +427,38 @@ Item {
     }
 
     HoverHandler { id: rowHover }
+
+    // Слой поверх строки: нажатие видит первым и держит пассивно (тап и кнопки работают), жест забирает,
+    // когда палец поехал вправо; вертикальный — остаётся списку
+    Item {
+        anchors.fill: parent
+        z: 10
+        DragHandler {
+            id: queueSwipe
+            target: null
+            enabled: Theme.mobile && !root.editable && root.available && root.uri !== ""
+            yAxis.enabled: false
+            // translation обнуляется раньше, чем приходит active=false: решение — по _swipeX
+            onTranslationChanged: {
+                if (!active)
+                    return
+                const x = Math.max(0, translation.x)
+                // за порогом — с сопротивлением
+                root._swipeX = x <= root._queueAt ? x : root._queueAt + (x - root._queueAt) * 0.3
+            }
+            onActiveChanged: {
+                if (active) {
+                    swipeBack.stop()
+                    return
+                }
+                if (root._queueArmed) {
+                    Player.addToQueue(root.trackData())
+                    Player.notice(I18n.t("Added to queue"))
+                }
+                swipeBack.restart()
+            }
+        }
+    }
 
     // Перетаскивание в очередь (вне правки)
     QueueDragSource {
