@@ -4042,6 +4042,7 @@ dependencies = [
  "hmac 0.12.1",
  "http",
  "jiff",
+ "libc",
  "librespot-connect",
  "librespot-core",
  "librespot-metadata",

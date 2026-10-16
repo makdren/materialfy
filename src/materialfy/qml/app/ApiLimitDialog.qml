@@ -10,6 +10,8 @@ Item {
     id: root
 
     property bool opened: false
+    onOpenedChanged: opened ? BackStack.push(root) : BackStack.pop(root)
+    Component.onDestruction: BackStack.pop(root)
     property bool _shownThisRun: false
     // Client ID отправлен: ждём браузер и показываем, чем кончилось
     property bool _connecting: false

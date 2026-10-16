@@ -11,6 +11,8 @@ Item {
     id: root
 
     property bool opened: false
+    onOpenedChanged: opened ? BackStack.push(root) : BackStack.pop(root)
+    Component.onDestruction: BackStack.pop(root)
 
     function open() {
         opened = true

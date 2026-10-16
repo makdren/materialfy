@@ -150,8 +150,12 @@ Page {
         premium: Auth.premium
         groups: page.signedIn ? Radio.seeds : []
         selected: Radio.selected
-        locked: page.signedIn && Radio.locked
-        loading: Radio.loading
+        // при запуске движок воспроизведения поднимается пару секунд: вход сохранён — это «подключаемся»,
+        // а не приглашение подключить воспроизведение
+        connecting: page.signedIn && Radio.locked && Settings.playbackAuthorized
+                    && (Auth.playbackState === "none" || Auth.playbackState === "connecting")
+        locked: page.signedIn && Radio.locked && !connecting
+        loading: Radio.loading || connecting
         playing: Radio.active && Player.playing
         errorText: Radio.errorText
         onPicked: uri => Radio.select(uri)

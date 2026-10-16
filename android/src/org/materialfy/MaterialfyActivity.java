@@ -30,14 +30,6 @@ public class MaterialfyActivity extends QtActivity
             window.setStatusBarContrastEnforced(false);
         }
         MobileBridge.attach(this);
-        // Android 13+: «Назад» (кнопка и жест) приходит только сюда — приложениям с targetSdk 36 система больше
-        // не шлёт KEYCODE_BACK, и до Qt он не доходит. Решает QML (MobileMain.goBack): меню, плеер, стек, свернуть.
-        if (Build.VERSION.SDK_INT >= 33) {
-            OnBackInvokedCallback callback = MaterialfyActivity::sendBack;
-            backCallback = callback;
-            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT,
-                                                                       callback);
-        }
         // Без разрешения уведомление плеера (и кнопки на экране блокировки) не показывается
         if (Build.VERSION.SDK_INT >= 33
             && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -46,6 +38,36 @@ public class MaterialfyActivity extends QtActivity
     }
 
     private Object backCallback;
+
+    // Android 13+: «Назад» (кнопка и жест) приходит в OnBackInvokedCallback, KEYCODE_BACK система больше не шлёт.
+    // Qt регистрирует свой колбэк в onResume, а срабатывает последний зарегистрированный — поэтому свой ставим
+    // здесь же, после Qt, и снимаем в onPause. Решает QML (MobileMain.goBack): клавиатура, меню, плеер, стек.
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+        if (Build.VERSION.SDK_INT >= 33) {
+            OnBackInvokedCallback callback = MaterialfyActivity::sendBack;
+            backCallback = callback;
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                                                                       callback);
+        }
+    }
+
+    @Override
+    protected void onPause()
+    {
+        unregisterBack();
+        super.onPause();
+    }
+
+    private void unregisterBack()
+    {
+        if (Build.VERSION.SDK_INT >= 33 && backCallback != null) {
+            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback((OnBackInvokedCallback) backCallback);
+            backCallback = null;
+        }
+    }
 
     private static void sendBack()
     {
@@ -71,8 +93,7 @@ public class MaterialfyActivity extends QtActivity
     @Override
     protected void onDestroy()
     {
-        if (Build.VERSION.SDK_INT >= 33 && backCallback != null)
-            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback((OnBackInvokedCallback) backCallback);
+        unregisterBack();
         // Активность закрыта, а процесс живёт (музыка играет в сервисе) — ссылку отпускаем
         MobileBridge.detach(this);
         super.onDestroy();

@@ -185,10 +185,15 @@ Item {
             id: swipe
             target: null
             enabled: Player.hasTrack
+            // translation обнуляется раньше, чем приходит active=false: смещение запоминаем по ходу жеста
+            property point last: Qt.point(0, 0)
+            onTranslationChanged: if (active) last = Qt.point(translation.x, translation.y)
             onActiveChanged: {
-                if (active)
+                if (active) {
+                    last = Qt.point(0, 0)
                     return
-                const t = translation
+                }
+                const t = last
                 if (Math.abs(t.x) > 72 && Math.abs(t.x) > Math.abs(t.y)) {
                     MobileShell.haptic()
                     if (t.x < 0)

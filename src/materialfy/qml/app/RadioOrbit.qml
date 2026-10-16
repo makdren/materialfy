@@ -15,6 +15,7 @@ Item {
     property var groups: []                // Radio.seeds: [{key, title, items: [{uri, label, cover, kind}]}]
     property string selected               // URI выбранного сида
     property bool locked: false            // нет воспроизведения на этом ПК — сиды неактивны
+    property bool connecting: false        // воспроизведение разрешено, движок ещё поднимается (вместе с loading)
     property bool loading: false
     property bool playing: false           // играет станция выбранного сида
     property bool signedIn: true
@@ -228,6 +229,7 @@ Item {
                             horizontalAlignment: caption.align
                             text: !root.signedIn ? I18n.t("Sign in to Spotify")
                                 : root.locked ? (root.premium ? I18n.t("Connect playback on this computer") : I18n.t("Spotify radio requires Premium"))
+                                : root.connecting ? I18n.t("Connecting to Spotify…")
                                 : root.loading ? I18n.t("Building your station…")
                                 : root.current ? root.current.item.label ?? "" : I18n.t("Pick a track, artist or playlist")
                             type: root.locked || !root.signedIn || root.loading || !root.current ? "titleLarge" : "headlineSmall"
@@ -243,6 +245,7 @@ Item {
                                     ? I18n.t("Spotify stations only come through a playback session (the Web API doesn't provide them). Separate browser sign-in, Spotify Premium required.")
                                     : I18n.t("Stations come through a playback session, which is only available with Premium."))
                                 : root.errorText !== "" ? root.errorText
+                                : root.connecting ? I18n.t("50 tracks · a fresh mix every time")
                                 : root.loading ? I18n.t("50 tracks in one batch")
                                 : I18n.t("50 tracks · a fresh mix every time")
                             type: "bodySmall"

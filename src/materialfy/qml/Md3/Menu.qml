@@ -16,6 +16,9 @@ Item {
     property var items: []
     readonly property bool opened: mainPopup.visible || (sheet.item !== null && sheet.item.opened)
 
+    onOpenedChanged: opened ? BackStack.push(root) : BackStack.pop(root)
+    Component.onDestruction: BackStack.pop(root)
+
     signal picked(int index)
     signal triggered(string id, var item)
 

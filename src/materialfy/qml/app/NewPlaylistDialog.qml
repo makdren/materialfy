@@ -9,6 +9,8 @@ Item {
 
     property var track: null
     property bool opened: false
+    onOpenedChanged: opened ? BackStack.push(root) : BackStack.pop(root)
+    Component.onDestruction: BackStack.pop(root)
 
     function open(t) {
         track = t ?? null

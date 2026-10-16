@@ -110,7 +110,7 @@ Item {
             DragHandler {
                 target: null
                 xAxis.enabled: false
-                onTranslationChanged: sheet.dragOffset = Math.max(0, translation.y)
+                onTranslationChanged: if (active) sheet.dragOffset = Math.max(0, translation.y)   // в конце жеста translation сбрасывается в 0
                 onActiveChanged: {
                     if (active)
                         return

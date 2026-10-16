@@ -11,7 +11,12 @@ T.Popup {
 
     readonly property bool _instant: Theme.reducedMotion === true
 
-    onClosed: sheet.drag = 0
+    onClosed: {
+        sheet.drag = 0
+        BackStack.pop(root)
+    }
+    onOpened: BackStack.push(root)
+    Component.onDestruction: BackStack.pop(root)
 
     function openSheet() {
         Devices.refresh()
@@ -94,7 +99,7 @@ T.Popup {
                     target: null
                     yAxis.enabled: true
                     xAxis.enabled: false
-                    onTranslationChanged: sheet.drag = Math.max(0, translation.y)
+                    onTranslationChanged: if (active) sheet.drag = Math.max(0, translation.y)   // в конце жеста translation сбрасывается в 0
                     onActiveChanged: if (!active) {
                         if (sheet.drag > 80)
                             root.close()

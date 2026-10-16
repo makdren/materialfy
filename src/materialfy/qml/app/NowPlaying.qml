@@ -170,9 +170,15 @@ Item {
                 enabled: Theme.mobile && root.open && !(root.layoutCompact && root.sheetOpen)
                 target: null
                 xAxis.enabled: false
+                // translation обнуляется раньше, чем приходит active=false: смещение запоминаем по ходу жеста
+                property real lastY: 0
+                onTranslationChanged: if (active) lastY = translation.y
                 onActiveChanged: {
-                    if (!active && translation.y > 120)
+                    if (active) {
+                        lastY = 0
+                    } else if (lastY > 120) {
                         root.hide()
+                    }
                 }
             }
         }

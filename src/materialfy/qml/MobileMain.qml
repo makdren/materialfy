@@ -121,14 +121,14 @@ Window {
                                          || Auth.webState === "authorizing" || Auth.personalState === "authorizing"
     on_BrowserWaitChanged: MobileShell.setBrowserWait(_browserWait)
 
-    // ---- «Назад» системы: меню → диалоги → плеер → стек страниц → главная → свернуть ----
+    // ---- «Назад» системы: клавиатура → меню и диалоги → плеер → стек страниц → главная → свернуть ----
     function goBack() {
-        if (trackMenu.back() || artistMenu.back())
-            return
-        if (newPlaylistDialog.opened) {
-            newPlaylistDialog.close()
+        if (Qt.inputMethod.visible) {
+            Qt.inputMethod.hide()
             return
         }
+        if (trackMenu.back() || BackStack.back())
+            return
         if (nowPlaying.open) {
             if (nowPlaying.sheetOpen)
                 nowPlaying.sheetOpen = false
@@ -146,10 +146,14 @@ Window {
         }
         MobileShell.moveTaskToBack()
     }
+    // Android шлёт «Назад» через MaterialfyActivity (mediaCommand "back"); клавиша — для клавиатуры и эмулятора.
+    // Одна последовательность: "Back" и StandardKey.Back на Android — одна клавиша, и Shortcut с двумя
+    // одинаковыми считался неоднозначным (activatedAmbiguously вместо activated)
     Shortcut {
-        sequences: ["Back", StandardKey.Back]
+        sequence: "Back"
         context: Qt.ApplicationShortcut
         onActivated: win.goBack()
+        onActivatedAmbiguously: win.goBack()
     }
     Shortcut { sequence: "Esc"; onActivated: win.goBack() }
 
