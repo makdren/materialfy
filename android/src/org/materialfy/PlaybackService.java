@@ -66,8 +66,6 @@ public class PlaybackService extends Service
     private static final int NOTIFICATION_ID = 1;
     private static final String ACTION_COMMAND = "org.materialfy.COMMAND";
     private static final String EXTRA_COMMAND = "command";
-    // своя кнопка медиасессии: сердце (как у Spotify) — карточка плеера системы показывает его рядом с «вперёд»
-    private static final String ACTION_LIKE = "org.materialfy.LIKE";
 
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static State latest = new State();
@@ -105,7 +103,7 @@ public class PlaybackService extends Service
         public void onReceive(Context context, Intent intent)
         {
             if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction()) && latest.playing && latest.local)
-                MobileBridge.onMediaCommand("pause", 0);
+                MobileBridge.send("pause", 0);
         }
     };
 
@@ -115,21 +113,21 @@ public class PlaybackService extends Service
             hasFocus = true;
             if (resumeOnFocusGain) {
                 resumeOnFocusGain = false;
-                MobileBridge.onMediaCommand("play", 0);
+                MobileBridge.send("play", 0);
             }
             break;
         case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
             // звонок, навигатор: пауза и продолжение, когда фокус вернут
             if (latest.playing && latest.local) {
                 resumeOnFocusGain = true;
-                MobileBridge.onMediaCommand("pause", 0);
+                MobileBridge.send("pause", 0);
             }
             break;
         case AudioManager.AUDIOFOCUS_LOSS:
             hasFocus = false;
             resumeOnFocusGain = false;
             if (latest.playing && latest.local)
-                MobileBridge.onMediaCommand("pause", 0);
+                MobileBridge.send("pause", 0);
             break;
         default:
             break;
@@ -137,13 +135,6 @@ public class PlaybackService extends Service
     };
 
     // ---- из MobileBridge (любой поток) ----
-
-    // Токен медиасессии для медиабраузера (MediaBrowser); null — сервис не запущен
-    static MediaSession.Token sessionToken()
-    {
-        PlaybackService s = running;
-        return s != null && s.session != null ? s.session.getSessionToken() : null;
-    }
 
     // Сердце в карточке плеера: трек сохранён / нет (Library.isSaved). Состояние живёт до следующего updateMedia
     static void setLiked(boolean liked)
@@ -208,24 +199,8 @@ public class PlaybackService extends Service
             channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             notifications.createNotificationChannel(channel);
         }
-        session = new MediaSession(this, "Materialfy");
-        session.setCallback(new MediaSession.Callback() {
-            @Override public void onPlay() { MobileBridge.onMediaCommand("play", 0); }
-            @Override public void onPause() { MobileBridge.onMediaCommand("pause", 0); }
-            @Override public void onSkipToNext() { MobileBridge.onMediaCommand("next", 0); }
-            @Override public void onSkipToPrevious() { MobileBridge.onMediaCommand("previous", 0); }
-            @Override public void onSeekTo(long pos) { MobileBridge.onMediaCommand("seek", pos); }
-            @Override public void onStop() { MobileBridge.onMediaCommand("pause", 0); }
-            @Override public void onCustomAction(String action, Bundle extras)
-            {
-                if (ACTION_LIKE.equals(action))
-                    MobileBridge.onMediaCommand("like", 0);
-            }
-        });
-        Intent open = new Intent(this, MaterialfyActivity.class)
-                          .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-        session.setSessionActivity(
-            PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
+        // общая сессия процесса: к ней же подключаются плееры системы через MediaBrowser
+        session = PlayerSession.get(this);
         session.setActive(true);
 
         PowerManager power = (PowerManager) getSystemService(POWER_SERVICE);
@@ -248,7 +223,7 @@ public class PlaybackService extends Service
         if (intent != null && ACTION_COMMAND.equals(intent.getAction())) {
             String command = intent.getStringExtra(EXTRA_COMMAND);
             if (command != null)
-                MobileBridge.onMediaCommand(command, 0);
+                MobileBridge.send(command, 0);
         }
         return START_NOT_STICKY;
     }
@@ -282,9 +257,11 @@ public class PlaybackService extends Service
         abandonFocus();
         setNoisy(false);
         releaseLocks();
+        // сессию не освобождаем — она общая с MediaBrowser; плеерам системы — «остановлено»
         if (session != null) {
-            session.setActive(false);
-            session.release();
+            session.setPlaybackState(new PlaybackState.Builder()
+                                         .setState(PlaybackState.STATE_STOPPED, 0, 0f, SystemClock.elapsedRealtime())
+                                         .build());
             session = null;
         }
         stopForegroundCompat(true);
@@ -327,7 +304,7 @@ public class PlaybackService extends Service
         PlaybackState.Builder state = new PlaybackState.Builder();
         if (s.hasTrack)
             state.addCustomAction(new PlaybackState.CustomAction.Builder(
-                                      ACTION_LIKE, getString(s.liked ? R.string.unlike : R.string.like),
+                                      PlayerSession.ACTION_LIKE, getString(s.liked ? R.string.unlike : R.string.like),
                                       s.liked ? R.drawable.ic_liked : R.drawable.ic_like).build());
         session.setPlaybackState(state
                                      .setActions(actions)

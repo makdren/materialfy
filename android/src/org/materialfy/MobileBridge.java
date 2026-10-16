@@ -24,6 +24,17 @@ public final class MobileBridge
     // Регистрирует cpp/mobile.cpp (register_natives)
     public static native void onMediaCommand(String command, long arg);
 
+    // Из Java-кода: команда в приложение. Нативная часть грузится вместе с активностью; если плеер системы
+    // нажал кнопку раньше (процесс поднят ради MediaBrowser), команды некому принять — не падаем
+    static void send(String command, long arg)
+    {
+        try {
+            onMediaCommand(command, arg);
+        } catch (UnsatisfiedLinkError e) {
+            android.util.Log.w("materialfy", "media command before the app started: " + command);
+        }
+    }
+
     static void attach(Activity a)
     {
         activity = new WeakReference<>(a);

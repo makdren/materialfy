@@ -1,10 +1,10 @@
-// Медиабраузер: показывает системе медиасессию плеера (PlaybackService). Каталога нет — список пуст; нужен,
-// чтобы система и оболочки (OriginOS, HyperOS) считали приложение музыкальным и выводили карточку плеера.
-// Пока ничего не играет, сессии нет — браузер отказывает (и система не предлагает «продолжить» с экрана блокировки).
+// Медиабраузер: отдаёт системе медиасессию приложения (PlayerSession). Каталога нет — список пуст. По нему
+// системные плееры (Origin Player vivo, карточка медиа Android) находят приложение и подключаются к сессии:
+// название, обложку, позицию и кнопки они берут из неё. Подключение принимается всегда — сессия создаётся
+// при первом запросе, а трек в ней появится, как только приложение начнёт играть.
 package org.materialfy;
 
 import android.media.browse.MediaBrowser.MediaItem;
-import android.media.session.MediaSession;
 import android.os.Bundle;
 import android.service.media.MediaBrowserService;
 
@@ -19,24 +19,13 @@ public class MediaBrowser extends MediaBrowserService
     public void onCreate()
     {
         super.onCreate();
-        attach();
-    }
-
-    private boolean attach()
-    {
-        if (getSessionToken() != null)
-            return true;
-        MediaSession.Token token = PlaybackService.sessionToken();
-        if (token == null)
-            return false;
-        setSessionToken(token);
-        return true;
+        setSessionToken(PlayerSession.get(this).getSessionToken());
     }
 
     @Override
     public BrowserRoot onGetRoot(String clientPackageName, int clientUid, Bundle rootHints)
     {
-        return attach() ? new BrowserRoot(ROOT, null) : null;
+        return new BrowserRoot(ROOT, null);
     }
 
     @Override
