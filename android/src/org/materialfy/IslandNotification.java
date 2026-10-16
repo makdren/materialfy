@@ -18,7 +18,10 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
+import android.service.notification.StatusBarNotification;
 
 import java.util.Locale;
 
@@ -28,6 +31,8 @@ final class IslandNotification
     static final int NOTIFICATION_ID = 3;
     private static final String PREFS = "materialfy";
     private static final String KEY_ENABLED = "islandEnabled";
+    // vivo отверг остров на этой прошивке и версии приложения (см. checkVivoVerdict)
+    private static final String KEY_VIVO_REJECTED = "islandVivoRejected";
     // vivo: прогресс острова обновляется не чаще, чем раз в 10 с (так советуют плееры, которые это делают)
     private static final long MIN_INTERVAL_MS = 10_000L;
 
@@ -61,7 +66,7 @@ final class IslandNotification
                 Notification.Action playPause, Notification.Action next)
     {
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (!supported() || !enabled(context) || !s.hasTrack || !s.playing) {
+        if (!supported() || !enabled(context) || !s.hasTrack || !s.playing || vivoRejected(context)) {
             clear(nm);
             return;
         }
@@ -128,13 +133,58 @@ final class IslandNotification
             nm.notify(NOTIFICATION_ID, b.build());
         } catch (RuntimeException e) {
             // прошивка отвергла расширенное уведомление — остаётся обычное уведомление плеера
+            return;
         }
+        if (isVivo() && newTrack)
+            new Handler(Looper.getMainLooper()).postDelayed(() -> checkVivoVerdict(context, nm), 1500);
+    }
+
+    // vivo (Funtouch / OriginOS) пускает в остров по superx только свои приложения (разрешение
+    // ISLAND_NOTI_SUPPORT — подписью системы) и помечает чужое уведомление SUPERX_VALUE=false. Live Update vivo
+    // тоже не выводит — карточка «острова» в шторке тогда лишь дублирует уведомление плеера: убрать её и больше
+    // не ставить на этой прошивке и этой версии приложения
+    private void checkVivoVerdict(Context context, NotificationManager nm)
+    {
+        try {
+            for (StatusBarNotification sbn : nm.getActiveNotifications()) {
+                if (sbn.getId() != NOTIFICATION_ID)
+                    continue;
+                Object verdict = sbn.getNotification().extras.get("SUPERX_VALUE");
+                if (verdict != null && "false".equals(String.valueOf(verdict))) {
+                    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                        .putString(KEY_VIVO_REJECTED, verdictKey(context)).apply();
+                    clear(nm);
+                }
+                return;
+            }
+        } catch (RuntimeException e) {
+            // нет ответа — оставить как есть
+        }
+    }
+
+    private static boolean vivoRejected(Context context)
+    {
+        if (!isVivo())
+            return false;
+        String saved = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_VIVO_REJECTED, "");
+        return saved.equals(verdictKey(context));
+    }
+
+    // прошивка + версия приложения: после обновления любого из них — проверить заново
+    private static String verdictKey(Context context)
+    {
+        long version = 0;
+        try {
+            version = context.getPackageManager().getPackageInfo(context.getPackageName(), 0).getLongVersionCode();
+        } catch (Exception e) {
+            // без версии — по одной прошивке
+        }
+        return Build.FINGERPRINT + "|" + version;
     }
 
     void clear(NotificationManager nm)
     {
-        if (lastKey.isEmpty())
-            return;
+        // и без своего lastKey: уведомление могло остаться от прежнего процесса приложения
         lastKey = "";
         lastAt = 0;
         nm.cancel(NOTIFICATION_ID);
