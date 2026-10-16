@@ -70,6 +70,12 @@ public final class MobileBridge
         PlaybackService.publish(context.getApplicationContext(), state);
     }
 
+    // Сердце в карточке плеера системы: текущий трек в любимых или нет
+    public static void setMediaLiked(boolean liked)
+    {
+        PlaybackService.setLiked(liked);
+    }
+
     // lightBars=true — тёмные значки статус-бара и навигации (светлая тема интерфейса)
     public static void setSystemBars(Context context, boolean lightBars)
     {

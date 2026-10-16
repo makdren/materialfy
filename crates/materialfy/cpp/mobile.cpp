@@ -248,6 +248,18 @@ MobileShell::moveTaskToBack()
 }
 
 void
+MobileShell::setMediaLiked(bool liked)
+{
+#if defined(Q_OS_ANDROID)
+  QJniObject::callStaticMethod<void>(BRIDGE, "setMediaLiked", "(Z)V", static_cast<jboolean>(liked));
+  QJniEnvironment env;
+  env.checkAndClearExceptions();
+#else
+  Q_UNUSED(liked);
+#endif
+}
+
+void
 MobileShell::haptic()
 {
 #if defined(Q_OS_ANDROID)

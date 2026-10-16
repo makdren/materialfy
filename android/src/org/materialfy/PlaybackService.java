@@ -23,6 +23,7 @@ import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -50,6 +51,7 @@ public class PlaybackService extends Service
         boolean canPrevious;
         boolean canNext;
         boolean local = true;
+        boolean liked;          // трек в любимых — кнопка-сердце в карточке плеера системы
         // когда пришло (позиция между обновлениями — по времени)
         long at = SystemClock.elapsedRealtime();
 
@@ -64,6 +66,8 @@ public class PlaybackService extends Service
     private static final int NOTIFICATION_ID = 1;
     private static final String ACTION_COMMAND = "org.materialfy.COMMAND";
     private static final String EXTRA_COMMAND = "command";
+    // своя кнопка медиасессии: сердце (как у Spotify) — карточка плеера системы показывает его рядом с «вперёд»
+    private static final String ACTION_LIKE = "org.materialfy.LIKE";
 
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static State latest = new State();
@@ -134,6 +138,25 @@ public class PlaybackService extends Service
 
     // ---- из MobileBridge (любой поток) ----
 
+    // Токен медиасессии для медиабраузера (MediaBrowser); null — сервис не запущен
+    static MediaSession.Token sessionToken()
+    {
+        PlaybackService s = running;
+        return s != null && s.session != null ? s.session.getSessionToken() : null;
+    }
+
+    // Сердце в карточке плеера: трек сохранён / нет (Library.isSaved). Состояние живёт до следующего updateMedia
+    static void setLiked(boolean liked)
+    {
+        MAIN.post(() -> {
+            if (latest.liked == liked)
+                return;
+            latest.liked = liked;
+            if (running != null)
+                running.apply();
+        });
+    }
+
     // Настройки → «Плеер в острове системы»: применить сразу
     static void refreshIsland()
     {
@@ -146,6 +169,7 @@ public class PlaybackService extends Service
     static void publish(Context context, State state)
     {
         MAIN.post(() -> {
+            state.liked = latest.liked;   // сердце приходит отдельно (setLiked)
             latest = state;
             if (running != null) {
                 running.apply();
@@ -192,6 +216,11 @@ public class PlaybackService extends Service
             @Override public void onSkipToPrevious() { MobileBridge.onMediaCommand("previous", 0); }
             @Override public void onSeekTo(long pos) { MobileBridge.onMediaCommand("seek", pos); }
             @Override public void onStop() { MobileBridge.onMediaCommand("pause", 0); }
+            @Override public void onCustomAction(String action, Bundle extras)
+            {
+                if (ACTION_LIKE.equals(action))
+                    MobileBridge.onMediaCommand("like", 0);
+            }
         });
         Intent open = new Intent(this, MaterialfyActivity.class)
                           .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
@@ -295,7 +324,12 @@ public class PlaybackService extends Service
             actions |= PlaybackState.ACTION_SKIP_TO_NEXT;
         if (s.canPrevious)
             actions |= PlaybackState.ACTION_SKIP_TO_PREVIOUS;
-        session.setPlaybackState(new PlaybackState.Builder()
+        PlaybackState.Builder state = new PlaybackState.Builder();
+        if (s.hasTrack)
+            state.addCustomAction(new PlaybackState.CustomAction.Builder(
+                                      ACTION_LIKE, getString(s.liked ? R.string.unlike : R.string.like),
+                                      s.liked ? R.drawable.ic_liked : R.drawable.ic_like).build());
+        session.setPlaybackState(state
                                      .setActions(actions)
                                      .setState(s.playing ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED,
                                                s.positionMs, s.playing ? 1f : 0f, SystemClock.elapsedRealtime())

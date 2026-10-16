@@ -52,6 +52,17 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- музыкальное приложение: по этим признакам оболочки (OriginOS, HyperOS) пускают его плеер
+                 в системную карточку медиа и в выбор «Музыка» -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.APP_MUSIC" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MUSIC_PLAYER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
 
             <meta-data
                 android:name="android.app.lib_name"
@@ -66,6 +77,15 @@
             android:name="org.materialfy.PlaybackService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+
+        <!-- Медиабраузер: так система (и оболочки) узнаёт музыкальное приложение и находит его медиасессию -->
+        <service
+            android:name="org.materialfy.MediaBrowser"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
 
         <service
             android:name="org.materialfy.SignInService"

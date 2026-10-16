@@ -42,6 +42,8 @@ public:
                                bool canPrevious,
                                bool canNext,
                                bool local);
+  // Сердце в карточке плеера системы (своя кнопка медиасессии): текущий трек в любимых
+  Q_INVOKABLE void setMediaLiked(bool liked);
   // Вход ждёт ответа браузера: процесс не должен замёрзнуть в фоне (Android: SignInService)
   Q_INVOKABLE void setBrowserWait(bool waiting);
   // Иконки статус-бара и навигации: lightBars=true — тёмные значки на светлом фоне

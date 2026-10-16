@@ -67,9 +67,15 @@ Window {
         target: Theme
         function onDarkChanged() { MobileShell.setSystemBars(!Theme.dark) }
     }
-    Component.onCompleted: MobileShell.setSystemBars(!Theme.dark)
+    Component.onCompleted: {
+        MobileShell.setSystemBars(!Theme.dark)
+        MobileShell.setMediaLiked(_mediaLiked)
+    }
 
     // ---- Плеер → уведомление и экран блокировки; их кнопки → плеер ----
+    // сердце в карточке плеера системы — как на мини-плеере
+    readonly property bool _mediaLiked: Library.savedRevision >= 0 && Player.uri !== "" && Library.isSaved(Player.uri)
+    on_MediaLikedChanged: MobileShell.setMediaLiked(_mediaLiked)
     function syncMedia() {
         const cover = Player.coverFile !== "" ? Player.coverFile : (Player.coverLarge !== "" ? Player.coverLarge : Player.cover)
         MobileShell.updateMedia(Player.title, Player.artist, Player.album, cover, Player.durationMs, Player.positionMs,
@@ -111,6 +117,7 @@ Window {
             case "seek": Player.seekMs(arg); break
             case "stop": Player.pause(); break
             case "back": win.goBack(); break     // «Назад» системы (MaterialfyActivity)
+            case "like": if (Player.uri !== "") Library.toggleSaved(Player.uri); break   // сердце карточки плеера
             }
         }
     }
