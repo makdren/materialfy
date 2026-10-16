@@ -368,7 +368,20 @@ android_prepare_assets(const QString& version)
   const QString base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
   const QString root = base + QStringLiteral("/bundle-") + version;
   const QString stamp = root + QStringLiteral("/.complete");
-  if (!QFile::exists(stamp)) {
+  // В метке — версия и метка сборки APK (build-id из build_apk.sh): переустановка той же версии (сборка ветки,
+  // отладка) тоже распаковывает новый QML, а не остаётся на прежнем
+  QString build = version;
+  {
+    QFile id(QStringLiteral("assets:/materialfy/build-id"));
+    if (id.open(QIODevice::ReadOnly))
+      build += QLatin1Char('+') + QString::fromUtf8(id.readAll()).trimmed();
+  }
+  bool fresh = false;
+  {
+    QFile marker(stamp);
+    fresh = marker.open(QIODevice::ReadOnly) && QString::fromUtf8(marker.readAll()) == build;
+  }
+  if (!fresh) {
     // старые версии — прочь
     QDir baseDir(base);
     for (const QString& old : baseDir.entryList({ QStringLiteral("bundle-*") }, QDir::Dirs | QDir::NoDotAndDotDot))
@@ -379,7 +392,7 @@ android_prepare_assets(const QString& version)
       return {};
     QFile marker(stamp);
     if (marker.open(QIODevice::WriteOnly))
-      marker.write(version.toUtf8());
+      marker.write(build.toUtf8());
   }
   return root + QStringLiteral("/qml");
 #else

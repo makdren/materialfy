@@ -88,6 +88,8 @@ rm -rf "$build" "$pkg"
 mkdir -p "$build/libs/$ABI" "$pkg/assets/materialfy"
 cp -r "$root/android/AndroidManifest.xml" "$root/android/src" "$root/android/res" "$pkg/"
 cp -r "$root/src/materialfy/qml" "$pkg/assets/materialfy/qml"
+# метка сборки: приложение распаковывает QML заново, когда она сменилась, — и при переустановке той же версии
+printf '%s' "$(date -u +%Y%m%d%H%M%S)-$(git -C "$root" rev-parse --short HEAD 2>/dev/null || echo local)" > "$pkg/assets/materialfy/build-id"
 mkdir -p "$pkg/assets/materialfy/assets"
 # fonts-src — исходники для сборки подмножеств, в APK не нужны
 (cd "$root/src/materialfy/assets" && find . -path ./fonts-src -prune -o -type f -print | while read -r f; do
