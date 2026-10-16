@@ -81,18 +81,15 @@ Window {
         MobileShell.updateMedia(Player.title, Player.artist, Player.album, cover, Player.durationMs, Player.positionMs,
                                 Player.playing, Player.hasTrack, Player.hasTrack, Player.hasTrack, Player.isLocal === true)
     }
-    Timer {
-        id: mediaSync
-        // сигналы плеера приходят пачкой (трек, состояние, позиция) — одно обновление на пачку
-        interval: 150
-        onTriggered: win.syncMedia()
-    }
+    // Сигналы плеера приходят пачкой (трек, состояние, позиция) — одно обновление на пачку. Qt.callLater, а не
+    // Timer: таймеры QML идут от отрисовки и в фоне (окно не показано) не срабатывают — уведомление застывало
+    function _queueMediaSync() { Qt.callLater(win.syncMedia) }
     Connections {
         target: Player
-        function onTrackChanged() { mediaSync.restart() }
-        function onStateChanged() { mediaSync.restart() }
-        function onCoverFileChanged() { mediaSync.restart() }
-        function onDeviceChanged() { mediaSync.restart() }
+        function onTrackChanged() { win._queueMediaSync() }
+        function onStateChanged() { win._queueMediaSync() }
+        function onCoverFileChanged() { win._queueMediaSync() }
+        function onDeviceChanged() { win._queueMediaSync() }
         // позицию система продолжает сама; обновляем после перемотки (скачок больше 2 с от ожидаемой)
         property real _at: 0
         property real _pos: 0
@@ -100,7 +97,7 @@ Window {
             const now = Date.now()
             const expected = _pos + (Player.playing ? now - _at : 0)
             if (Math.abs(Player.positionMs - expected) > 2000)
-                mediaSync.restart()
+                win._queueMediaSync()
             _at = now
             _pos = Player.positionMs
         }

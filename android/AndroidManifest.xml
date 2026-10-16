@@ -68,6 +68,12 @@
                 android:name="android.app.lib_name"
                 android:value="-- %%INSERT_APP_LIB_NAME%% --" />
 
+            <!-- Цикл событий Qt не останавливать в фоне: иначе, пока приложение свёрнуто, смена трека не доходит
+                 до уведомления и экрана блокировки, а их кнопки — до плеера (музыка играет в потоках Rust) -->
+            <meta-data
+                android:name="android.app.background_running"
+                android:value="true" />
+
             <meta-data
                 android:name="android.app.arguments"
                 android:value="-- %%INSERT_APP_ARGUMENTS%% --" />

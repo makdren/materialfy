@@ -77,7 +77,8 @@ Item {
             if (collapse === 0)
                 _measure()
             collapseBack.stop()
-            collapseIn.duration = collapse === 0 ? 520 : Math.max(240, 460 * (1 - collapse))
+            // та же длительность, что у раскрытия (820 мс); после свайпа — доля оставшегося пути
+            collapseIn.duration = Math.max(240, root._openMs * (1 - collapse))
             collapseIn.restart()
             return
         }
@@ -96,6 +97,7 @@ Item {
     // этапы: верхняя панель гаснет первой (0…0,2), подписи и кнопки — следом (0,05…0,4), обложка — до конца
     readonly property real _detail: 1 - Math.max(0, Math.min(1, (collapse - 0.05) / 0.35))
     readonly property real _chrome: 1 - Math.max(0, Math.min(1, collapse / 0.2))
+    readonly property int _openMs: 820       // раскрытие плеера; сворачивание в мини-плеер — столько же
     property Item collapseTarget: null       // плашка мини-плеера
     property Item collapseCover: null        // её обложка
     property real collapse: 0
@@ -157,7 +159,7 @@ Item {
         NumberAnimation {
             id: revealAnim
             // программный рендер — сразу: кадры раскрытия (два слоя и маска на весь экран) рисует процессор
-            duration: Theme.lowPower ? 0 : Theme.reducedMotion ? Theme.motion.effectsDefault : root.open ? 820 : 620
+            duration: Theme.lowPower ? 0 : Theme.reducedMotion ? Theme.motion.effectsDefault : root.open ? root._openMs : 620
             easing.type: Easing.Linear     // кривые — у каждой фазы свои, см. blob
             // onFinished здесь не приходит (анимация внутри Behavior сигнал не шлёт).
             // Linear заканчивается ровно на to — снап не нужен.
