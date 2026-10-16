@@ -325,6 +325,8 @@ Window {
             id: nowPlaying
             anchors.fill: parent
             compact: true
+            collapseTarget: miniPlayer
+            collapseCover: miniPlayer.coverItem
             z: 100
         }
     }

@@ -69,29 +69,76 @@ Item {
         forceActiveFocus()
     }
     function hide() {
+        // телефон: плеер сжимается в плашку мини-плеера (без «капли»)
+        if (Theme.mobile && open && collapseTarget && !Theme.reducedMotion && !Theme.lowPower) {
+            // с места (кнопка, «Назад») — плавный разгон и торможение; после свайпа — продолжение движения
+            collapseIn.easing.type = collapse === 0 ? Easing.InOutCubic : Easing.OutCubic
+            if (collapse === 0)
+                _measure()
+            collapseBack.stop()
+            collapseIn.duration = Math.max(180, 420 * (1 - collapse))
+            collapseIn.restart()
+            return
+        }
+        collapseIn.stop()
+        collapseBack.stop()
+        _swipeClosing = collapse > 0   // недосвёрнутый плеер закрывается сразу, без «капли» из середины жеста
         open = false
+        collapse = 0
+        _swipeClosing = false
     }
 
-    // Свайп вниз (телефон): плеер едет за пальцем 1:1; отпустили ниже порога или смахнули — уезжает за нижний
-    // край и закрывается без «капли»; иначе возвращается
-    property real dragY: 0
+    // ---- Сворачивание в мини-плеер (телефон): свайп вниз ведёт его пальцем, кнопка и «Назад» — анимацией ----
+    // collapse 0…1: большая обложка уменьшается до обложки плашки и летит на её место (весь плеер — вместе с
+    // ней, одним масштабом), рамка плеера стягивается от экрана к прямоугольнику плашки, углы скругляются;
+    // в конце плеер растворяется в настоящей плашке под ним
+    property Item collapseTarget: null       // плашка мини-плеера
+    property Item collapseCover: null        // её обложка
+    property real collapse: 0
     property bool _swipeClosing: false
-    NumberAnimation {
-        id: dragBack
-        target: root; property: "dragY"; to: 0
-        duration: Theme.motion.spatialDefault
-        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedDecelerate
+    // большая обложка при collapse = 0: центр и сторона (в координатах плеера)
+    property point _bc: Qt.point(width / 2, height / 3)
+    property real _bs: 300
+    function _measure() {
+        const c = bigCover.mapToItem(root, bigCover.width / 2, bigCover.height / 2)
+        _bc = c
+        _bs = Math.max(1, bigCover.width)
     }
+    function _rectOf(item, fallback) {
+        if (!item)
+            return fallback
+        const p = item.mapToItem(root, 0, 0)
+        return Qt.rect(p.x, p.y, item.width, item.height)
+    }
+    readonly property rect _target: { collapse; return _rectOf(collapseTarget, Qt.rect(8, height - 140, width - 16, 64)) }
+    readonly property rect _targetCover: { collapse; return _rectOf(collapseCover, Qt.rect(_target.x + 8, _target.y + 8, 48, 48)) }
+    // масштаб содержимого и куда встаёт центр обложки
+    readonly property real _s: 1 + (_targetCover.width / _bs - 1) * collapse
+    // по горизонтали — по центру рамки (плашка во всю ширину) и только в конце к обложке слева
+    readonly property real _cx: _bc.x + (_targetCover.x + _targetCover.width / 2 - _bc.x) * Math.pow(collapse, 3)
+    readonly property real _cy: _bc.y + (_targetCover.y + _targetCover.height / 2 - _bc.y) * collapse
+    readonly property real _tx: _cx - _bc.x * _s
+    readonly property real _ty: _cy - _bc.y * _s
+    // рамка (в координатах плеера) и она же в координатах содержимого — для маски
+    readonly property rect _frame: Qt.rect(_target.x * collapse, _target.y * collapse,
+                                           width + (_target.width - width) * collapse,
+                                           height + (_target.height - height) * collapse)
+    readonly property rect _window: Qt.rect((_frame.x - _tx) / _s, (_frame.y - _ty) / _s, _frame.width / _s, _frame.height / _s)
     NumberAnimation {
-        id: dragAway
-        target: root; property: "dragY"
-        duration: 200; easing.type: Easing.OutCubic
+        id: collapseIn
+        target: root; property: "collapse"; to: 1
         onFinished: {
             root._swipeClosing = true
             root.open = false
-            root.dragY = 0
+            root.collapse = 0
             root._swipeClosing = false
         }
+    }
+    NumberAnimation {
+        id: collapseBack
+        target: root; property: "collapse"; to: 0
+        duration: Theme.motion.spatialDefault
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedDecelerate
     }
 
     visible: reveal > 0
@@ -114,6 +161,37 @@ Item {
     function _time(ms) {
         const s = Math.max(0, Math.round(ms / 1000))
         return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0")
+    }
+
+    // Подложка сворачивания: из экрана — в плашку мини-плеера (её цвет и скругление); фон плеера над ней гаснет
+    Rectangle {
+        visible: root.collapse > 0
+        x: root._frame.x
+        y: root._frame.y
+        width: root._frame.width
+        height: root._frame.height
+        radius: Theme.shape.large * root.collapse
+        readonly property color from: Theme.surface
+        readonly property color to: Theme.surfaceContainerHighest
+        color: Qt.rgba(from.r + (to.r - from.r) * root.collapse, from.g + (to.g - from.g) * root.collapse,
+                       from.b + (to.b - from.b) * root.collapse, 1)
+        opacity: 1 - Math.max(0, (root.collapse - 0.85) / 0.15)
+    }
+
+    // Маска сворачивания (в координатах содержимого): окно у обложки со скруглением плашки
+    Item {
+        id: collapseMask
+        anchors.fill: parent
+        visible: false
+        layer.enabled: root.collapse > 0
+        Rectangle {
+            x: root._window.x
+            y: root._window.y
+            width: root._window.width
+            height: root._window.height
+            radius: Theme.shape.large * root.collapse / root._s
+            color: "white"
+        }
     }
 
     // Маска раскрытия: фигура-«окно»
@@ -147,18 +225,26 @@ Item {
     Item {
         id: content
         anchors.fill: parent
-        // свайп вниз тянет плеер за пальцем
-        transform: Translate { y: root.dragY }
-        opacity: Math.min(1, root.reveal / 0.12)
-        layer.enabled: root.reveal < 1
+        // сворачивание в мини-плеер: масштаб, затем сдвиг (окно у обложки встаёт в рамку плашки)
+        transform: [
+            Scale { xScale: root._s; yScale: root._s },
+            Translate { x: root._tx; y: root._ty }
+        ]
+        // в конце сжатия плеер растворяется в настоящей плашке под ним
+        opacity: Math.min(1, root.reveal / 0.12) * (1 - Math.max(0, (root.collapse - 0.7) / 0.3))
+        layer.enabled: root.reveal < 1 || root.collapse > 0
         layer.effect: MultiEffect {
             maskEnabled: true
-            maskSource: revealMask
+            maskSource: root.collapse > 0 ? collapseMask : revealMask
             maskThresholdMin: 0.5
             maskSpreadAtMin: 1.0
         }
 
-        // Фон: размытая обложка + вуаль цвета темы
+        // Фон: размытая обложка + вуаль цвета темы. При сворачивании в мини-плеер гаснет — остаётся подложка-плашка
+        Item {
+        anchors.fill: parent
+        opacity: 1 - Math.min(1, root.collapse * 2.5)
+        visible: opacity > 0
         Rectangle { anchors.fill: parent; color: Theme.surface }
         // Режим, сила размытия и «плавание» — из настроек (см. CoverBackdrop); при смене трека фон
         // меняется вместе с цветами темы — под той же шторкой (см. TrackBackdrop)
@@ -177,6 +263,7 @@ Item {
             color: Theme.surface
             opacity: Theme.dark ? 0.62 : 0.55
         }
+        }
 
         // Блокирует клики по приложению под плеером
         MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
@@ -193,27 +280,29 @@ Item {
                 enabled: Theme.mobile && root.open && !(root.layoutCompact && root.sheetOpen)
                 target: null
                 xAxis.enabled: false
-                // translation обнуляется раньше, чем приходит active=false: смещение и скорость запоминаем по ходу
+                // translation обнуляется раньше, чем приходит active=false: смещение и скорость запоминаем по ходу.
+                // Верх рамки идёт за пальцем: collapse = смещение / путь до плашки
                 property real vy: 0
                 onTranslationChanged: {
                     if (!active)
                         return
-                    root.dragY = Math.max(0, translation.y)
+                    root.collapse = Math.max(0, Math.min(1, translation.y / Math.max(1, root._target.y)))
+                    // рамка — от экрана до плашки; верх рамки идёт за пальцем
                     vy = centroid.velocity.y
                 }
                 onActiveChanged: {
                     if (active) {
                         vy = 0
-                        dragBack.stop()
-                        dragAway.stop()
+                        collapseIn.stop()
+                        collapseBack.stop()
+                        if (root.collapse === 0)
+                            root._measure()
                         return
                     }
-                    if (root.dragY > root.height * 0.22 || (vy > 900 && root.dragY > 24)) {
-                        dragAway.to = root.height
-                        dragAway.restart()
-                    } else {
-                        dragBack.restart()
-                    }
+                    if (root.collapse > 0.25 || (vy > 900 && root.collapse > 0.03))
+                        root.hide()
+                    else
+                        collapseBack.restart()
                 }
             }
         }
