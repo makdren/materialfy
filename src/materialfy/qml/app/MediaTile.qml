@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Md3
+import Materialfy.Core
 
 // Плитка альбома / исполнителя / плейлиста: обложка в фигуре MD3E, название, подпись.
 // При наведении фигура морфится, у исполнителей — круг. showPlay — кнопка «Слушать» на обложке по наведению;
@@ -186,7 +187,7 @@ Item {
             }
         }
         // телефон: меню — долгим нажатием (правой кнопки нет)
-        onPressAndHold: mouse => { if (Theme.mobile) root.menuRequested(root.mapToItem(null, mouse.x, mouse.y)); else mouse.accepted = false }
+        onPressAndHold: mouse => { if (Theme.mobile) { MobileShell.haptic(); root.menuRequested(root.mapToItem(null, mouse.x, mouse.y)) } else mouse.accepted = false }
         onClicked: mouse => {
             if (mouse.button === Qt.RightButton)
                 root.menuRequested(root.mapToItem(null, mouse.x, mouse.y))

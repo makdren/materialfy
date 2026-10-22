@@ -11,6 +11,9 @@ Page {
 
     title: I18n.t("Home")
     showHeader: false
+    pullToRefresh: signedIn
+    refreshing: Home.loading
+    onPullRefresh: Home.refresh(true)
 
     readonly property bool signedIn: Auth.state === "signedIn"
     readonly property bool compact: width < 760

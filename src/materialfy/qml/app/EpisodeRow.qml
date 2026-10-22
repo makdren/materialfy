@@ -73,6 +73,7 @@ Item {
                 mouse.accepted = false
                 return
             }
+            MobileShell.haptic()
             const p = mapToItem(null, mouse.x, mouse.y)
             Catalog.requestTrackMenu(root.trackData(), p.x, p.y)
         }

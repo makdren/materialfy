@@ -106,7 +106,7 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onClicked: mouse => mouse.button === Qt.RightButton ? root.menuRequested(root.mapToItem(null, mouse.x, mouse.y)) : root.clicked()
         // телефон: меню — долгим нажатием (правой кнопки нет)
-        onPressAndHold: mouse => { if (Theme.mobile) root.menuRequested(root.mapToItem(null, mouse.x, mouse.y)); else mouse.accepted = false }
+        onPressAndHold: mouse => { if (Theme.mobile) { MobileShell.haptic(); root.menuRequested(root.mapToItem(null, mouse.x, mouse.y)) } else mouse.accepted = false }
     }
 
     PlayButton {

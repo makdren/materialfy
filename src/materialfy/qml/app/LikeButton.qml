@@ -15,7 +15,12 @@ IconButton {
     autoToggle: false
     checked: liked
     enabled: _id !== ""
-    onClicked: Library.toggleLike(track)
+    onClicked: {
+        // телефон: лайк — с отзывом под пальцем, как у системных кнопок
+        if (Theme.mobile)
+            MobileShell.haptic()
+        Library.toggleLike(track)
+    }
 
     // Лайк: «удар сердца» и всплеск — кольцо расходится и гаснет, шесть искр разлетаются.
     // Снятие лайка — короткое «сжатие» без всплеска

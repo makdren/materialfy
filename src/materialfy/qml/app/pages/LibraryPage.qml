@@ -342,6 +342,13 @@ Item {
         NumberAnimation { target: list; property: "opacity"; to: 1; duration: Theme.motion.effectsDefault }
     }
 
+    PullToRefresh {
+        flickable: list
+        enabled: page.signedIn && !page.inFolder
+        busy: (Library.playlists.loading ?? false) || (Library.albums.loading ?? false) || (Library.liked.loading ?? false)
+        onRefresh: Library.refresh()
+    }
+
     ListView {
         id: list
         anchors.fill: parent

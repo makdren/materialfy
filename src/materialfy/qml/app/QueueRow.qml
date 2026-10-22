@@ -58,8 +58,10 @@ Item {
         dragged: root.dragging
         onClicked: root.activated()
         onPressAndHold: mouse => {
-            if (Theme.mobile)
+            if (Theme.mobile) {
+                MobileShell.haptic()
                 root.openMenu(root, mouse.x, mouse.y)
+            }
             else
                 mouse.accepted = false
         }

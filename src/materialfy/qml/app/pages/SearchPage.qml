@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtCore as Persist
 import Md3
 import Materialfy.Core
 import ".."
@@ -58,6 +59,59 @@ Page {
     }
     onTypeChanged: if (field.text.trim() !== "") Catalog.search(field.text, page.type)
 
+    // ---- Тихий повтор ----
+    // Первый запрос после простоя нередко падает на «холодном» соединении (на телефоне — почти каждый раз),
+    // а повтор проходит: один повтор без экрана ошибки, «Поиск не ответил» — только если не ответил и он
+    readonly property string _searchKey: field.text.trim() + "|" + type
+    property string _retriedFor: ""
+    readonly property bool _failed: Catalog.searchState === "error" && _retriedFor === _searchKey && !retryTimer.running
+    readonly property bool _retrying: Catalog.searchState === "error" && !_failed
+    Connections {
+        target: Catalog
+        function onSearchChanged() {
+            if (Catalog.searchState !== "error" || field.text.trim() === "" || page._retriedFor === page._searchKey)
+                return
+            page._retriedFor = page._searchKey
+            retryTimer.restart()
+        }
+    }
+    Timer { id: retryTimer; interval: 600; onTriggered: Catalog.search(field.text, page.type) }
+
+    // ---- Недавние запросы ----
+    // Запрос попадает в историю, когда по нему есть результаты и его не меняли 2,5 с (или нажат Enter / выбран
+    // из истории) — недопечатанные «pyr», «pyro» не сохраняются. Хранится локально (QSettings), до 8 штук
+    Persist.Settings {
+        id: searchHistory
+        // свой файл: без него QSettings из QML требует organizationDomain, а приложение его не задаёт
+        location: Persist.StandardPaths.writableLocation(Persist.StandardPaths.AppConfigLocation) + "/search-history.ini"
+        category: "SearchHistory"
+        property string recent: "[]"
+    }
+    readonly property var recent: {
+        try {
+            const list = JSON.parse(searchHistory.recent)
+            return Array.isArray(list) ? list.filter(q => typeof q === "string" && q !== "") : []
+        } catch (e) {
+            return []
+        }
+    }
+    function remember(q) {
+        q = (q ?? "").trim()
+        if (q.length < 2)
+            return
+        const low = q.toLowerCase()
+        searchHistory.recent = JSON.stringify([q].concat(recent.filter(x => x.toLowerCase() !== low)).slice(0, 8))
+    }
+    function forget(q) { searchHistory.recent = JSON.stringify(recent.filter(x => x !== q)) }
+    function searchFor(q) {
+        field.text = q
+        debounce.stop()
+        Catalog.search(q, page.type)
+        remember(q)
+    }
+    Timer { id: rememberTimer; interval: 2500; onTriggered: if (Catalog.searchState === "ok") page.remember(field.text) }
+    readonly property bool showRecent: signedIn && field.text.trim() === "" && recent.length > 0
+
     SearchField {
         id: field
         Layout.fillWidth: true
@@ -67,12 +121,17 @@ Page {
         implicitHeight: 56
         // телефон: коротко — длинная подсказка не помещается в поле
         placeholder: Theme.mobile ? I18n.t("Search") : I18n.t("Track, album, artist, playlist or podcast")
-        onTextChanged: debounce.restart()
+        onTextChanged: {
+            debounce.restart()
+            rememberTimer.restart()
+        }
         // Enter — искать сразу, не дожидаясь паузы ввода; Esc — очистить поле
         onAccepted: {
             debounce.stop()
-            if (field.text.trim() !== "")
+            if (field.text.trim() !== "") {
                 Catalog.search(field.text, page.type)
+                page.remember(field.text)
+            }
         }
         Keys.onEscapePressed: event => {
             if (field.text !== "")
@@ -93,10 +152,64 @@ Page {
     }
 
     // ---- Состояния ----
+    // Недавние запросы — вместо приглашения, пока поле пустое
+    ColumnLayout {
+        Layout.fillWidth: true
+        Layout.maximumWidth: 720
+        Layout.alignment: Qt.AlignHCenter
+        visible: page.showRecent
+        spacing: 0
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.bottomMargin: 4
+            Label {
+                Layout.fillWidth: true
+                text: I18n.t("Recent searches")
+                type: "titleMedium"
+                weight: 600
+            }
+            Button {
+                style: "text"
+                text: I18n.t("Clear")
+                onClicked: searchHistory.recent = "[]"
+            }
+        }
+        Repeater {
+            model: page.recent
+            Item {
+                id: recentRow
+                required property string modelData
+                Layout.fillWidth: true
+                implicitHeight: 52
+                StateLayer {
+                    anchors.fill: parent
+                    radius: Theme.shape.large
+                    onClicked: page.searchFor(recentRow.modelData)
+                }
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 8
+                    spacing: 16
+                    Icon { name: "history"; size: 22; color: Theme.fgSurfaceVariant }
+                    Label {
+                        Layout.fillWidth: true
+                        text: recentRow.modelData
+                        type: "bodyLarge"
+                    }
+                    IconButton {
+                        icon: "close"
+                        size: "s"
+                        onClicked: page.forget(recentRow.modelData)
+                    }
+                }
+            }
+        }
+    }
+
     EmptyState {
         Layout.alignment: Qt.AlignHCenter
         Layout.topMargin: 48
-        visible: !page.signedIn || Catalog.searchState === "idle" || Catalog.searchState === "empty" || Catalog.searchState === "error"
+        visible: !page.signedIn || (Catalog.searchState === "idle" && !page.showRecent) || Catalog.searchState === "empty" || page._failed
         icon: !page.signedIn ? "login" : Catalog.searchState === "empty" ? "search_off"
             : Catalog.searchState === "error" ? "cloud_off" : "travel_explore"
         title: !page.signedIn ? I18n.t("Sign in to search")
@@ -121,7 +234,7 @@ Page {
         Layout.topMargin: 48
         size: 64
         contained: true
-        visible: page.signedIn && Catalog.searchState === "loading"
+        visible: page.signedIn && (Catalog.searchState === "loading" || page._retrying)
     }
 
     // ---- Результаты ----

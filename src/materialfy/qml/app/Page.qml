@@ -20,8 +20,19 @@ Item {
     property alias underlay: underlayHost.data
     readonly property alias flickable: flick
     readonly property bool scrolled: flick.contentY > 48
+    // телефон: «потянуть вниз — обновить» (страница включает и задаёт refreshing / onPullRefresh)
+    property bool pullToRefresh: false
+    property bool refreshing: false
+    signal pullRefresh()
 
     Item { id: underlayHost; anchors.fill: parent }
+
+    PullToRefresh {
+        flickable: flick
+        enabled: page.pullToRefresh
+        busy: page.refreshing
+        onRefresh: page.pullRefresh()
+    }
 
     SmoothFlickable {
         id: flick

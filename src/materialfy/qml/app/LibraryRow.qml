@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Md3
+import Materialfy.Core
 
 // Строка библиотеки (вид «список»): обложка 48 (исполнитель — круг, папка — иконка, Любимые — градиент),
 // название + булавка / «только чтение», подпись, колонки «Автор», «Добавлено», «Слушали» (последняя
@@ -164,8 +165,10 @@ Item {
         radius: Theme.shape.large
         onClicked: root.clicked()
         onPressAndHold: mouse => {
-            if (Theme.mobile)
+            if (Theme.mobile) {
+                MobileShell.haptic()
                 root.menuRequested(mapToItem(null, mouse.x, mouse.y))
+            }
             else
                 mouse.accepted = false
         }
