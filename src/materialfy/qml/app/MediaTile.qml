@@ -31,6 +31,8 @@ Item {
     // 70 мс: касание, с которого начинается прокрутка полки, не успевает её дёрнуть
     property bool _touched: false
     Timer { id: touchDelay; interval: 70; onTriggered: root._touched = area.pressed }
+    // быстрый тап (короче задержки) тоже виден: короткая вспышка, пока открывается страница
+    Timer { id: tapFlash; interval: 180; onTriggered: root._touched = false }
     readonly property bool _morphed: hovered || _touched
 
     signal clicked()
@@ -189,10 +191,15 @@ Item {
         // телефон: меню — долгим нажатием (правой кнопки нет)
         onPressAndHold: mouse => { if (Theme.mobile) { MobileShell.haptic(); root.menuRequested(root.mapToItem(null, mouse.x, mouse.y)) } else mouse.accepted = false }
         onClicked: mouse => {
-            if (mouse.button === Qt.RightButton)
+            if (mouse.button === Qt.RightButton) {
                 root.menuRequested(root.mapToItem(null, mouse.x, mouse.y))
-            else
+            } else {
+                if (Theme.mobile) {
+                    root._touched = true
+                    tapFlash.restart()
+                }
                 root.clicked()
+            }
         }
     }
 }

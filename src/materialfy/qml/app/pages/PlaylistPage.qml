@@ -219,9 +219,11 @@ TrackListPage {
         }
     }
 
+    // телефон: радио и «поделиться» — в меню «ещё», кнопки поменьше: иначе ряд шапки переносился на две строки
     headerExtra: Row {
         spacing: 4
         IconButton {
+            visible: !Theme.mobile
             icon: "radio"
             size: "m"
             // станции идут через сессию воспроизведения (как «Радио исполнителя»)
@@ -234,7 +236,7 @@ TrackListPage {
         IconButton {
             visible: page.canEdit
             icon: "edit"
-            size: "m"
+            size: Theme.mobile ? "s" : "m"
             onClicked: page.editing = true
         }
         IconButton {
@@ -244,7 +246,7 @@ TrackListPage {
             Accessible.name: followed ? I18n.t("Following") : I18n.t("Follow")
             icon: followed ? "library_add_check" : "library_add"
             style: followed ? "tonal" : "standard"
-            size: "m"
+            size: Theme.mobile ? "s" : "m"
             checkable: true
             autoToggle: false
             checked: followed
@@ -258,6 +260,7 @@ TrackListPage {
             }
         }
         IconButton {
+            visible: !Theme.mobile
             icon: "share"
             size: "m"
             enabled: page.uri !== ""
@@ -268,8 +271,8 @@ TrackListPage {
         }
         IconButton {
             id: moreButton
-            icon: "more_horiz"
-            size: "m"
+            icon: Theme.mobile ? "more_vert" : "more_horiz"
+            size: Theme.mobile ? "s" : "m"
             onClicked: {
                 const p = moreButton.mapToItem(plMenu, 0, moreButton.height)
                 plMenu.open(page._menuItems(), p)
@@ -345,11 +348,15 @@ TrackListPage {
 
     // ---- Меню «⋯» ----
     function _menuItems() {
-        const items = [
+        const items = Theme.mobile ? [
+            { id: "radio", text: I18n.t("Playlist radio"), icon: "radio", enabled: page.uri !== "" && !Radio.locked },
+            { id: "share", text: I18n.t("Copy link"), icon: "share", enabled: page.uri !== "" },
+            { separator: true }
+        ] : []
+        items.push(
             { id: "queue", text: I18n.t("Add to queue"), icon: "add_to_queue", enabled: page.uri !== "" },
             { id: "pin", text: (Library.pinsRevision >= 0 && Library.isPinned(page.uri)) ? I18n.t("Unpin") : I18n.t("Pin in library"),
-              icon: "push_pin" }
-        ]
+              icon: "push_pin" })
         if (page.canEdit)
             items.push({ id: "edit", text: I18n.t("Edit playlist"), icon: "edit" })
         if (page.own)
@@ -362,8 +369,15 @@ TrackListPage {
         id: plMenu
         anchors.fill: parent
         z: 50
+        header: ({ title: page.title, subtitle: I18n.t("Playlist"), image: page.heroImage })
         onTriggered: (id, item) => {
-            if (id === "queue") {
+            if (id === "radio") {
+                Radio.playStation(page.uri, page.title)
+                page.notify(I18n.t("Playlist radio: “{0}”", page.title))
+            } else if (id === "share") {
+                Catalog.copyLink(Catalog.uriUrl(page.uri))
+                page.notify(I18n.t("Link copied"))
+            } else if (id === "queue") {
                 Player.addUriToQueue(page.uri)
                 page.notify(I18n.t("Playlist added to queue"))
             } else if (id === "pin") {

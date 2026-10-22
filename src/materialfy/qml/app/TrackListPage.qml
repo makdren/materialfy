@@ -42,6 +42,7 @@ Item {
     property string addedColumn                // "" / "by" / "at" — колонка «Добавил»/«Добавлено»
     property bool showPlays: false             // колонка прослушиваний (альбом)
     property bool showAlbum: true              // колонка альбома (на странице альбома не нужна)
+    property bool rowCovers: true              // обложки в строках (у альбома на телефоне — номер вместо одинаковых обложек)
     property real contentRightInset: 0         // место справа под боковую панель (AddTracksPanel)
     Behavior on contentRightInset { enabled: Theme.reducedMotion !== true; NumberAnimation { duration: Theme.motion.spatialDefault; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.emphasizedDecelerate } }
     readonly property alias listView: list
@@ -224,6 +225,7 @@ Item {
             albumId: model.albumId
             album: model.album
             cover: model.cover
+            showCover: page.rowCovers
             coverLarge: model.coverLarge ?? ""
             uri: model.uri ?? ""
             isEpisode: model.isEpisode ?? false
@@ -431,11 +433,21 @@ Item {
                         onClicked: Player.playFrom(page.shownModel, 0)
                     }
                     Button {
-                        visible: page.showPlayButtons
+                        visible: page.showPlayButtons && !Theme.mobile
                         text: I18n.t("Shuffle play")
                         icon: "shuffle"
                         style: "tonal"
-                        size: Theme.mobile ? "s" : "m"
+                        size: "m"
+                        enabled: page.shownModel !== null && page.shownModel.count > 0
+                        onClicked: Player.shuffleFrom(page.shownModel)
+                    }
+                    // телефон: перемешивание — круглой кнопкой, иначе «Сохранить» и поиск уезжали на вторую строку
+                    IconButton {
+                        visible: page.showPlayButtons && Theme.mobile
+                        Accessible.name: I18n.t("Shuffle play")
+                        icon: "shuffle"
+                        style: "tonal"
+                        size: "s"
                         enabled: page.shownModel !== null && page.shownModel.count > 0
                         onClicked: Player.shuffleFrom(page.shownModel)
                     }

@@ -200,7 +200,9 @@ Item {
                             Layout.preferredHeight: 36
                             spacing: 12
                             Label {
-                                Layout.preferredWidth: Math.min(132, content.width * 0.36)
+                                // русские подписи («Прослушивания», «Ненормативная…») длиннее английских: на телефоне
+                                // колонка шире, иначе они обрывались многоточием
+                                Layout.preferredWidth: Theme.mobile ? Math.min(150, content.width * 0.45) : Math.min(132, content.width * 0.36)
                                 text: infoRow.modelData.label
                                 type: "bodyMedium"
                                 color: Theme.fgSurfaceVariant
@@ -267,7 +269,8 @@ Item {
                     spacing: 8
                     Button { text: I18n.t("Close"); onClicked: root.close() }
                     Button {
-                        text: I18n.t("Open in Spotify")
+                        // телефон: коротко — с «Закрыть» в один ряд
+                        text: Theme.mobile ? "Spotify" : I18n.t("Open in Spotify")
                         icon: "open_in_new"
                         style: "text"
                         enabled: root._uri !== ""

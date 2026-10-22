@@ -211,9 +211,18 @@ Item {
                     }
                 }
 
-                RowLayout {
+                // Flow справа налево: на телефоне три кнопки не помещаются в ряд — переносятся, а не распирают
+                // диалог шире экрана (у RowLayout минимальная ширина — сумма кнопок)
+                Flow {
                     Layout.fillWidth: true
+                    layoutDirection: Qt.RightToLeft
                     spacing: 8
+                    Button {
+                        text: I18n.t("Connect")
+                        enabled: field.text.trim() !== "" && root._st !== "authorizing"
+                        onClicked: root.connect()
+                    }
+                    Button { text: I18n.t("Later"); style: "text"; onClicked: root.close() }
                     Button {
                         text: I18n.t("Don’t show again")
                         style: "text"
@@ -221,13 +230,6 @@ Item {
                             Settings.apiLimitTipDismissed = true
                             root.close()
                         }
-                    }
-                    Item { Layout.fillWidth: true }
-                    Button { text: I18n.t("Later"); style: "text"; onClicked: root.close() }
-                    Button {
-                        text: I18n.t("Connect")
-                        enabled: field.text.trim() !== "" && root._st !== "authorizing"
-                        onClicked: root.connect()
                     }
                 }
             }

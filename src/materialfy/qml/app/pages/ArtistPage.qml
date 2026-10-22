@@ -186,7 +186,8 @@ Page {
                         onClicked: Player.playFrom(page.artist.popular, 0)
                     }
                     Button {
-                        text: I18n.t("Artist’s radio")
+                        // телефон: коротко — иначе кнопка подписки уезжала одна на отдельную строку
+                        text: Theme.mobile ? I18n.t("Radio") : I18n.t("Artist’s radio")
                         icon: "radio"
                         style: "tonal"
                         size: Theme.mobile ? "s" : "m"

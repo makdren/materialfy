@@ -18,6 +18,11 @@ Item {
     implicitWidth: 358
     implicitHeight: 216
 
+    // телефон: нажатие чуть поджимает карточку; быстрый тап — короткой вспышкой (страница ещё открывается)
+    scale: Theme.mobile && (area.pressed || tapFlash.running) ? 0.97 : 1
+    Behavior on scale { NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.springFast } }
+    Timer { id: tapFlash; interval: 160 }
+
     // «Исполнитель Трек · …» по первым строкам Любимых
     readonly property string sample: {
         const m = Library.liked
@@ -104,7 +109,14 @@ Item {
         hoverEnabled: !Theme.mobile
         cursorShape: Qt.PointingHandCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onClicked: mouse => mouse.button === Qt.RightButton ? root.menuRequested(root.mapToItem(null, mouse.x, mouse.y)) : root.clicked()
+        onClicked: mouse => {
+            if (mouse.button === Qt.RightButton) {
+                root.menuRequested(root.mapToItem(null, mouse.x, mouse.y))
+                return
+            }
+            tapFlash.restart()
+            root.clicked()
+        }
         // телефон: меню — долгим нажатием (правой кнопки нет)
         onPressAndHold: mouse => { if (Theme.mobile) { MobileShell.haptic(); root.menuRequested(root.mapToItem(null, mouse.x, mouse.y)) } else mouse.accepted = false }
     }

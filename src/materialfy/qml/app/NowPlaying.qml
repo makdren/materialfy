@@ -610,6 +610,10 @@ Item {
                     text: Player.title
                     type: root.layoutCompact ? "headlineSmall" : "headlineMedium"
                     weight: 700
+                    // длинное название — в две строки, а не «по коридору красных фон…»
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
+                    elide: Text.ElideRight
                     opacity: left.infoIn * root._detail
                     transform: Translate { y: (1 - left.infoIn) * 14 }
                 }

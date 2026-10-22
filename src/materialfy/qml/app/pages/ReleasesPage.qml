@@ -249,20 +249,38 @@ Page {
         actionText: Releases.loading ? "" : I18n.t("Refresh")
         onAction: Releases.refresh(true)
     }
+    // Чипы — ChipRow: на телефоне ряд прокручивается. Раньше здесь был RowLayout из чипов и подписи, его
+    // минимальная ширина (≈400 px) была больше экрана и растягивала всю колонку страницы — справа обрезались
+    // подзаголовок, кнопки и заголовки секций
     RowLayout {
         Layout.fillWidth: true
         Layout.topMargin: -12
         spacing: 8
         visible: page.releases.length > 0
-        Chip { text: I18n.t("All"); selected: page.filter === "all"; onClicked: page.filter = "all" }
-        Chip { text: I18n.t("Albums"); selected: page.filter === "album"; onClicked: page.filter = "album" }
-        Chip { text: I18n.t("Singles and EPs"); selected: page.filter === "single"; onClicked: page.filter = "single" }
-        Item { Layout.fillWidth: true }
+        ChipRow {
+            Layout.fillWidth: true
+            bleed: Theme.mobile ? page.sideMargin : 0
+            keyRole: "id"
+            model: [
+                { id: "all", text: I18n.t("All") }, { id: "album", text: I18n.t("Albums") },
+                { id: "single", text: I18n.t("Singles and EPs") }
+            ]
+            current: page.filter
+            onPicked: key => page.filter = key
+        }
         Label {
+            visible: !Theme.mobile
             text: I18n.t("past 6 weeks")
             type: "bodyMedium"
             color: Theme.fgSurfaceVariant
         }
+    }
+    Label {
+        visible: Theme.mobile && page.releases.length > 0
+        Layout.topMargin: -12
+        text: I18n.t("past 6 weeks")
+        type: "bodySmall"
+        color: Theme.fgSurfaceVariant
     }
 
     LoadingIndicator {

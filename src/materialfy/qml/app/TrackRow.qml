@@ -18,6 +18,7 @@ Item {
     property string albumId
     property string album
     property string cover
+    property bool showCover: true
     property string coverLarge
     property string uri
     property bool isEpisode: false
@@ -244,7 +245,7 @@ Item {
 
         // телефон: номер рядом с обложкой лишний — его 40 px нужнее названию (как в Spotify)
         Label {
-            visible: root.number > 0 && !(Theme.mobile && root.cover !== "")
+            visible: root.number > 0 && !(Theme.mobile && root.showCover && root.cover !== "")
             Layout.preferredWidth: 28
             text: root.number
             type: "bodyMedium"
@@ -253,6 +254,7 @@ Item {
         }
 
         MorphImage {
+            visible: root.showCover
             Layout.preferredWidth: 48
             Layout.preferredHeight: 48
             source: root.cover
