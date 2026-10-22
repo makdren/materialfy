@@ -20,7 +20,14 @@ Item {
     z: 5
 
     readonly property bool _active: enabled && Theme.mobile
-    // OvershootBounds: у верхнего края палец тянет содержимое вниз, verticalOvershoot < 0
+    // OvershootBounds пускает за край только бросок, палец — нет: здесь нужен DragAndOvershootBounds.
+    // У верхнего края палец тянет содержимое вниз, verticalOvershoot < 0
+    Binding {
+        target: root.flickable
+        property: "boundsBehavior"
+        value: Flickable.DragAndOvershootBounds
+        when: root._active
+    }
     readonly property real pull: _active ? Math.max(0, -flickable.verticalOvershoot) : 0
     readonly property real progress: Math.min(1, pull / threshold)
     property bool spinning: false
