@@ -216,7 +216,8 @@ Item {
                 transform: Translate { y: (1 - root._infoIn) * 8 }
                 Label {
                     Layout.fillWidth: true
-                    text: Player.title
+                    // играет другое устройство, а данных трека ещё нет — не пустая строка
+                    text: Player.title !== "" ? Player.title : remoteLabel.shown ? "Spotify Connect" : ""
                     type: "titleSmall"
                     weight: 600
                 }
@@ -230,6 +231,7 @@ Item {
                 RemoteLabel {
                     id: remoteLabel
                     Layout.fillWidth: true
+                    maxWidth: parent.width
                     visible: shown && Player.errorText === ""
                     brief: false
                 }
