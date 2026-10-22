@@ -44,7 +44,7 @@ Item {
         root.openNowPlaying(coverBox.mapToItem(null, coverBox.width / 2, coverBox.height / 2))
     }
 
-    PlayerProgress { id: playerProgress; active: root.visible }
+    PlayerProgress { id: playerProgress; active: root.visible; smooth: false }
 
     // Переключение свайпом: плашка едет за пальцем 1:1, после порога улетает за край, трек переключается,
     // и плашка с новым треком въезжает с другой стороны (когда плеер сообщил о смене или через 1,2 с)

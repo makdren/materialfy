@@ -475,6 +475,11 @@ fn run_engine(cli: &Cli, rt: &tokio::runtime::Runtime, services: &Services) -> i
         // SAFETY: root — живое окно движка, GUI-поток
         unsafe { ffi::install_memory_trim(root) };
     }
+    if cli.screenshot.is_none() && ffi::is_android() {
+        // Android: в фоне — мусор JS, кэши и свободная куча системе (без снятия сцены, см. install_memory_trim)
+        // SAFETY: root — живое окно движка, GUI-поток
+        unsafe { ffi::install_memory_trim(root) };
+    }
     spawn_app_requests(rt.handle(), services);
     if cli.main_mode() && cfg!(any(target_os = "windows", target_os = "macos")) {
         spawn_instance_listener(rt.handle());

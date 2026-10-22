@@ -175,7 +175,9 @@ Window {
             opacity: Theme.dark ? 0.22 : 0.26
             source: Player.cover
             mode: Settings.backdropMode === "glass" ? "gauss" : Settings.backdropMode
-            flow: Settings.nowPlayingDrift
+            // за страницами — без «дрейфа»: при прозрачности 22 % его почти не видно, а он 30 раз в секунду
+            // перерисовывал весь экран, пока играет музыка (≈8 % CPU). Дрейф остаётся в полноэкранном плеере
+            flow: 0
             followTheme: Settings.accentFromCover
             running: visible && Player.playing && !nowPlaying.open && Qt.application.state === Qt.ApplicationActive
         }
