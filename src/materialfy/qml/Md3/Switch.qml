@@ -79,7 +79,7 @@ Item {
         id: area
         anchors.fill: parent
         anchors.margins: -4
-        hoverEnabled: true
+        hoverEnabled: !Theme.mobile
         enabled: root.enabled
         cursorShape: Qt.PointingHandCursor
         onClicked: root.activate()

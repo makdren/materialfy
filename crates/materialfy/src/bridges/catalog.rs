@@ -36,6 +36,7 @@ pub mod qobject {
         #[qobject]
         #[qproperty(QString, search_state, cxx_name = "searchState", READ, NOTIFY = search_changed)]
         #[qproperty(QString, search_query, cxx_name = "searchQuery", READ, NOTIFY = search_changed)]
+        #[qproperty(QString, search_kind, cxx_name = "searchKind", READ, NOTIFY = search_changed)]
         #[qproperty(QMap_QString_QVariant, best, READ, NOTIFY = search_changed)]
         #[qproperty(QMap_QString_QVariant, totals, READ, NOTIFY = search_changed)]
         #[qproperty(*mut QObject, search_tracks, cxx_name = "searchTracks", READ = search_tracks_ptr, CONSTANT)]
@@ -243,6 +244,7 @@ pub struct CatalogRust {
     // поиск
     search_state: QString,
     search_query: QString,
+    search_kind: QString,
     best: QVariantMap,
     totals: QVariantMap,
     query: String,
@@ -270,6 +272,7 @@ impl Default for CatalogRust {
             nav: 0,
             search_state: QString::from("idle"),
             search_query: QString::default(),
+            search_kind: QString::from(SearchKind::All.name()),
             best: QVariantMap::default(),
             totals: QVariantMap::default(),
             query: String::new(),
@@ -617,6 +620,7 @@ impl qobject::Catalog {
         let mut this = self.as_mut().rust_mut();
         this.query = query.clone();
         this.search_query = QString::from(query.as_str());
+        this.search_kind = QString::from(kind.name());
         this.kind = kind;
         this.generation += 1;
         let generation = this.generation;

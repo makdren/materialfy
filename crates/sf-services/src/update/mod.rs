@@ -589,9 +589,12 @@ impl UpdateService {
                     let _ = this.app_requests.send(AppRequest::Quit);
                 }
                 Ok(install::Outcome::HandedOff) => {
-                    this.apply(Event::InstallHandedOff {
-                        note: mf_i18n::t("Drag Materialfy to Applications in the window that opened, then restart the app"),
-                    });
+                    let note = if kind == InstallKind::AndroidApk {
+                        mf_i18n::t("Confirm the update in the system window, then open Materialfy again")
+                    } else {
+                        mf_i18n::t("Drag Materialfy to Applications in the window that opened, then restart the app")
+                    };
+                    this.apply(Event::InstallHandedOff { note });
                 }
                 Err(text) => {
                     this.apply(Event::Failed {

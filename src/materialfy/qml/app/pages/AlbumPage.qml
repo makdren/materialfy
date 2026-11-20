@@ -35,6 +35,8 @@ TrackListPage {
     model: album ? album.tracks : null
     showPlays: true
     showAlbum: false
+    // телефон: у всех треков та же обложка — вместо неё номер трека
+    rowCovers: !Theme.mobile
     // сведения о выпуске под списком: дата, треки и длительность, лейбл, правообладатели
     footerExtra: album && album.tracks.count > 0 ? releaseInfo : null
     emptyIcon: "album"

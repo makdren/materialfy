@@ -36,11 +36,18 @@ def prepare_core(directory):
         "Settings": 'property string animations: "reduced"; property string lowPowerMode: "auto"',
         "Translations": 'property string language: "en"; property var ru: ({}); property var pt: ({})',
         "Auth": 'property string state: "signedIn"',
+        "MobileShell": "property real fontScale: 1; function textSize(sp) { return sp } function prepareAccessibility(item, owner) {}",
         "IconMetrics": 'function glyph(name) { return "" } function ink(name, size) { return Qt.rect(0, 0, size, size) }',
         "Catalog": """
             property string searchQuery: "Last catalog search"
+            property string searchKind: "all"
+            property string searchState: "loading"
             property var calls: []
-            function search(query, type) { calls = calls.concat([[query, type]]) }
+            function search(query, type) {
+                searchQuery = query
+                searchKind = type
+                calls = calls.concat([[query, type]])
+            }
         """,
     }
     for name, properties in singletons.items():
@@ -155,20 +162,33 @@ class SharedQmlTests(unittest.TestCase):
         # Load the page's actual input and debounce logic without the result delegates.
         source = (QML / "app/pages/SearchPage.qml").read_text(encoding="utf-8")
         props = source[source.index("    property string initialQuery:"):source.index("    readonly property bool all:")]
-        logic = source[source.index("    function focusSearch()"):source.index("    Flow {")]
+        logic = source[source.index("    function focusSearch()"):source.index("    ChipRow {")]
+        # Use in-memory history so the test never touches the user's search history.
+        logic = re.sub(
+            r"    Persist.Settings \{.*?\n    \}",
+            '    QtObject { id: searchHistory; property string recent: "[]" }',
+            logic, count=1, flags=re.S,
+        )
         obj = self.create("""
             import QtQuick.Layouts
             Item {
                 id: page
                 width: 600
+                property var router: null
+                readonly property bool signedIn: true
                 property alias text: field.text
                 function searchCount() { return Catalog.calls.length }
+                function externalSearch(query) {
+                    Catalog.searchQuery = query
+                    Catalog.searchKind = "all"
+                    showQuery(query)
+                }
         """ + props + logic + "}", {"initialQuery": "Deep link"})
         self.assertIsInstance(obj, QQuickItem)
         self.assertEqual(obj.property("text"), "Deep link")
         obj.setProperty("filter", 1)
         self.assertEqual(obj.searchCount(), 1)
-        obj.showQuery("Deep link")
+        obj.externalSearch("Deep link")
         self.assertEqual(obj.property("filter"), 0)
         QTest.qWait(400)
         self.assertEqual(obj.searchCount(), 1)

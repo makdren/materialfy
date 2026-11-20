@@ -23,7 +23,7 @@ Item {
         clicked()
     }
 
-    implicitHeight: 32
+    implicitHeight: Theme.mobile ? Math.max(32, Theme.type.labelLarge.line + 12) : 32
     // без текста — квадратный чип с одной иконкой
     readonly property bool _iconOnly: text === "" && _leading
     implicitWidth: _iconOnly ? 32 : _leftPad + content.implicitWidth + 16
@@ -32,7 +32,17 @@ Item {
 
     property real cornerRadius: area.pressed ? 4 : 8
     Behavior on cornerRadius { NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.OutBack } }
-    Behavior on implicitWidth { NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.OutCubic } }
+    Behavior on implicitWidth { NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Theme.mobile ? Easing.BezierSpline : Easing.OutCubic; easing.bezierCurve: Theme.motion.springDefault } }
+
+    // галочка выбранного чипа «выпрыгивает», а не появляется рывком
+    onSelectedChanged: if (Theme.mobile && selected && Theme.reducedMotion !== true) checkPop.restart()
+    NumberAnimation {
+        id: checkPop
+        target: leadIcon; property: "scale"
+        from: 0.2; to: 1
+        duration: Theme.motion.spatialFast
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion.springFast
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -51,6 +61,7 @@ Item {
         spacing: 6
 
         Icon {
+            id: leadIcon
             visible: root._leading
             tight: true
             name: root.selected ? "check" : root.icon
@@ -64,6 +75,7 @@ Item {
             type: "labelLarge"
             color: root.selected ? Theme.fgSecondaryContainer : Theme.fgSurfaceVariant
             anchors.verticalCenter: parent.verticalCenter
+            Behavior on color { enabled: !Theme.transitioning; ColorAnimation { duration: Theme.motion.effectsDefault } }
         }
     }
 

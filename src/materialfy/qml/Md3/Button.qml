@@ -67,10 +67,10 @@ Item {
 
     property real cornerRadius: area.pressed ? _spec.pressedR : _selected ? _spec.squareR : height / 2
     Behavior on cornerRadius {
-        NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.OutBack; easing.overshoot: Theme.motion.overshoot }
+        NumberAnimation { duration: Theme.mobile && area.pressed ? Theme.motion.press : Theme.motion.spatialFast; easing.type: Theme.mobile ? Easing.OutCubic : Easing.OutBack; easing.overshoot: Theme.motion.overshoot }
     }
 
-    implicitHeight: _spec.h
+    implicitHeight: Theme.mobile ? Math.max(_spec.h, Theme.type[_spec.type].line + 12) : _spec.h
     implicitWidth: content.implicitWidth + 2 * _spec.pad
     opacity: 1
 

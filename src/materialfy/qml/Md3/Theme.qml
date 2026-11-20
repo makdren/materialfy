@@ -43,6 +43,11 @@ Item {
     // Режим для слабых ПК, включённый вручную, тоже: на совсем слабой машине тормозят и переходы.
     readonly property bool reducedMotion: Settings.animations === "reduced" || Settings.lowPowerMode === "on"
         || (Settings.animations === "system" && Settings.systemReducedMotion === true)
+    // Раскладка телефона (MobileMain.qml, сборка для Android и --mobile): касания вместо курсора — без наведения,
+    // крупные цели, нижние листы вместо всплывающих меню. safeTop/safeBottom — системные панели и вырез экрана.
+    property bool mobile: false
+    property real safeTop: 0
+    property real safeBottom: 0
     // Цвет схемы, когда ничего не играет
     readonly property color defaultSeed: "#8C6DFF"   // Ultraviolet, BRAND_SEED в bridges/theme.rs
     // Новая схема применена: instant — мгновенно под шторкой, иначе — началась плавная анимация.
@@ -295,7 +300,14 @@ Item {
     }
 
     // size / lineHeight / weight / letterSpacing (px)
-    readonly property var type: Typography.styles
+    readonly property real fontScale: mobile ? MobileShell.fontScale : 1
+    readonly property var type: mobile && fontScale !== 1
+        ? Typography.scaled(Typography.styles, sp => MobileShell.textSize(sp))
+        : Typography.styles
+
+    function trackRowHeight(compact) {
+        return Math.max(compact ? 56 : 64, type.bodyLarge.line + type.bodyMedium.line + (compact ? 12 : 20))
+    }
 
     // ---- Формы (радиусы скругления) -----------------------------------------
     readonly property QtObject shape: QtObject {
@@ -325,17 +337,28 @@ Item {
     // Пружины MD3 Expressive аппроксимированы кривыми с перелётом (OutBack),
     // эффекты (цвет, прозрачность) — без перелёта.
     readonly property QtObject motion: QtObject {
-        readonly property int spatialFast: root.reducedMotion ? 0 : 350
-        readonly property int spatialDefault: root.reducedMotion ? 0 : 500
-        readonly property int spatialSlow: root.reducedMotion ? 0 : 650
-        readonly property int effectsFast: 150
-        readonly property int effectsDefault: 200
-        readonly property int effectsSlow: 300
-        readonly property real overshoot: 1.25
+        // Телефон: короткий отклик, спокойное перемещение; для больших раскрытий — отдельный токен.
+        readonly property int press: root.reducedMotion ? 0 : 100
+        readonly property int spatialFast: root.reducedMotion ? 0 : root.mobile ? 200 : 350
+        readonly property int spatialDefault: root.reducedMotion ? 0 : root.mobile ? 280 : 500
+        readonly property int spatialSlow: root.reducedMotion ? 0 : root.mobile ? 380 : 650
+        readonly property int playerReveal: root.reducedMotion ? 0 : root.mobile ? 440 : 820
+        readonly property int effectsFast: root.mobile ? 110 : 150
+        readonly property int effectsDefault: root.mobile ? 150 : 200
+        readonly property int effectsSlow: root.mobile ? 200 : 300
+        readonly property real overshoot: root.mobile ? 0.6 : 1.25
 
         readonly property var emphasized: [0.2, 0.0, 0.0, 1.0, 1.0, 1.0]
+        // ровное перемещение «из точки в точку» (плеер → мини-плеер): мягкий разгон и мягкое торможение,
+        // без рывка в середине, как у emphasized
+        readonly property var smoothMove: [0.4, 0.0, 0.2, 1.0, 1.0, 1.0]
         readonly property var emphasizedDecelerate: [0.05, 0.7, 0.1, 1.0, 1.0, 1.0]
         readonly property var emphasizedAccelerate: [0.3, 0.0, 0.8, 0.15, 1.0, 1.0]
         readonly property var standard: [0.2, 0.0, 0.0, 1.0, 1.0, 1.0]
+        // Пружины MD3 Expressive в виде кривых (токены motion-scheme expressive): быстрая — для мелких
+        // элементов (индикатор, иконка, чип), обычная — для крупных; эффекты — без перелёта
+        readonly property var springFast: [0.42, 1.67, 0.21, 0.90, 1.0, 1.0]
+        readonly property var springDefault: [0.38, 1.21, 0.22, 1.00, 1.0, 1.0]
+        readonly property var effects: [0.31, 0.94, 0.34, 1.00, 1.0, 1.0]
     }
 }

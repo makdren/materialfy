@@ -17,6 +17,7 @@ Item {
     // Мелким глифам (три точки more_horiz) стандартного кегля и веса мало: в кнопке они теряются
     property real iconSize: _spec.icon
     property real iconWeight: 400
+    property real iconFill: _selected ? 1 : 0
     readonly property alias pressed: area.pressed
     readonly property alias hovered: area.containsMouse
 
@@ -70,7 +71,7 @@ Item {
 
     property real cornerRadius: area.pressed ? _spec.pressedR : _selected ? _spec.squareR : height / 2
     Behavior on cornerRadius {
-        NumberAnimation { duration: Theme.motion.spatialFast; easing.type: Easing.OutBack; easing.overshoot: Theme.motion.overshoot }
+        NumberAnimation { duration: Theme.mobile && area.pressed ? Theme.motion.press : Theme.motion.spatialFast; easing.type: Theme.mobile ? Easing.OutCubic : Easing.OutBack; easing.overshoot: Theme.motion.overshoot }
     }
 
     implicitHeight: _spec.h
@@ -91,7 +92,7 @@ Item {
         name: root.icon
         size: root.iconSize
         weight: root.iconWeight
-        fill: root._selected ? 1 : 0
+        fill: root.iconFill
         color: root.iconColor
     }
 
