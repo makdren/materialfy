@@ -1,6 +1,8 @@
 name: Android
 
 on:
+  push:
+    branches: [upstream-android-validation]
   workflow_dispatch:
   pull_request:
     branches: [main]
@@ -23,7 +25,7 @@ env:
 jobs:
   apk:
     name: Android arm64 APK
-    if: github.event_name == 'workflow_dispatch' || vars.ANDROID_CI == 'true'
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
