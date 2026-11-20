@@ -1,0 +1,103 @@
+name: Android
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'crates/**'
+      - 'src/materialfy/qml/**'
+      - 'tests/qml/**'
+      - 'Cargo.*'
+      - '.github/scripts/install_qt.py'
+      - '.github/workflows/android.yml'
+
+permissions:
+  contents: read
+
+env:
+  QT_VERSION: "6.12.0"
+  NDK_VERSION: "28.2.13676358"
+
+jobs:
+  apk:
+    name: Android arm64 APK
+    if: github.event_name == 'workflow_dispatch' || vars.ANDROID_CI == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends p7zip-full lld
+
+      - name: Cache Qt
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/gcc_64
+            ${{ runner.temp }}/Qt/${{ env.QT_VERSION }}/android_arm64_v8a
+          key: qt-${{ env.QT_VERSION }}-android-${{ hashFiles('.github/scripts/install_qt.py', '.github/workflows/android.yml') }}
+
+      - name: Install host and Android Qt
+        run: |
+          for pair in linux:gcc_64 android:android_arm64_v8a; do
+            python3 .github/scripts/install_qt.py --host "${pair%:*}" --version "$QT_VERSION" \
+              --out "$RUNNER_TEMP/Qt/$QT_VERSION/${pair#*:}"
+          done
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Cache Gradle
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.gradle/caches/modules-2
+            ~/.gradle/wrapper
+          key: gradle-android-qt-${{ env.QT_VERSION }}-${{ hashFiles('android/build_apk.sh') }}
+
+      - name: Install Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "ndk;$NDK_VERSION"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: android-arm64-qt-${{ env.QT_VERSION }}
+          save-if: ${{ github.event_name != 'pull_request' }}
+
+      - name: Build APK
+        env:
+          KEYSTORE_BASE64: ${{ github.event_name == 'workflow_dispatch' && secrets.ANDROID_KEYSTORE_BASE64 || '' }}
+          ANDROID_KEYSTORE_PASS: ${{ github.event_name == 'workflow_dispatch' && secrets.ANDROID_KEYSTORE_PASS || '' }}
+          ANDROID_KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS || 'materialfy' }}
+        run: |
+          export QT_ANDROID="$RUNNER_TEMP/Qt/$QT_VERSION/android_arm64_v8a"
+          export QT_HOST="$RUNNER_TEMP/Qt/$QT_VERSION/gcc_64"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/$NDK_VERSION"
+          if [[ -n "$KEYSTORE_BASE64" && -n "$ANDROID_KEYSTORE_PASS" ]]; then
+            umask 077
+            export ANDROID_KEYSTORE="$RUNNER_TEMP/materialfy-android.jks"
+            trap 'rm -f -- "$ANDROID_KEYSTORE"' EXIT
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE"
+            umask 022
+          fi
+          unset KEYSTORE_BASE64
+          bash android/build_apk.sh --release
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: materialfy-android-arm64
+          path: target/android/Materialfy-*.apk
+          if-no-files-found: error

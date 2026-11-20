@@ -194,6 +194,18 @@ the script again updates the app.
 
 There is no installer; build the `.app` as described in [Building](#macos-experimental).
 
+### Android
+
+Android 9 or later on an arm64 device. Download the APK from a [Materialfy
+release](https://github.com/fatyzzz/materialfy/releases) when an Android asset is available.
+For a test build, run the **Android** workflow manually or follow
+[the Android build script](android/build_apk.sh). Android CI can also run on pull requests when
+the repository variable `ANDROID_CI` is set to `true`.
+
+Release APKs must use the same signing key across updates. The manual workflow uses
+`ANDROID_KEYSTORE_BASE64` and `ANDROID_KEYSTORE_PASS` when both are configured, with an optional
+`ANDROID_KEY_ALIAS`. APKs ending in `-debugsigned.apk` are for testing.
+
 ## First run
 
 Spotify grants two separate permissions, and the app asks for them one at a time.
